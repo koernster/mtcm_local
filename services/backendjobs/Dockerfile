@@ -14,8 +14,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the .env file and app directory
-COPY .env ./
+# Copy app directory (env vars injected by docker-compose)
 COPY app/ ./app/
 
 # Create a non-root user for security

@@ -40,6 +40,9 @@ const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     },
     idTokenParsed: {
       sub: 'local-dev-user',
+      name: 'Local Developer',
+      email: 'dev@localhost',
+      preferred_username: 'dev-user',
     },
     login: () => Promise.resolve(),
     logout: () => { window.location.href = '/'; },

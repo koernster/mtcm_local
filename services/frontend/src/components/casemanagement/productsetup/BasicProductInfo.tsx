@@ -205,7 +205,7 @@ const BasicProductInfo: React.FC = () => {
                                     >
                                         <FaBuilding />&nbsp; Profile
                                     </InputGroup.Text>
-                                )}
+                                )} */}
                             </InputGroup>
                             <StyledFormText>Search by name or email to automatically link a HubSpot contact.</StyledFormText>
                         </FormGroup>
