@@ -1,5 +1,7 @@
 import React from 'react';
 import { PrintHeader } from '../../styled/PrintStyles';
+import { Spv } from '../../../services/api/graphQL/spv';
+import { getImageSrc } from '../../../utils/imageUtils';
 
 interface AddressInfo {
     line1: string;
@@ -20,6 +22,7 @@ interface PrintHeaderCommonProps {
     address?: AddressInfo;
     fontSize?: string;
     children?: React.ReactNode;
+    spvData?: Spv;
 }
 
 const PrintHeaderCommon: React.FC<PrintHeaderCommonProps> = ({
@@ -27,44 +30,35 @@ const PrintHeaderCommon: React.FC<PrintHeaderCommonProps> = ({
     logoAlt = "Company Logo",
     logoWidth = "160px",
     logoHeight = "60px",
-    logoMargin = "15px 0 0 0",
-    address = {
-        type: 'Address',
-        line1: "55 Rue de la Vallée",
-        line2: "2661 Luxembourg",
-        line3: "Grand Duchy of Luxembourg",
-        line4: "",
-        registrationNumber: "B264806",
-        title: ''
-    },
+    logoMargin = "20px 0 0 0",
     fontSize = "12px",
-    children
+    children,
+    spvData
 }) => {
     return (
         <PrintHeader>
-            <div style={{ 
-                background: 'linear-gradient(90deg, #778DA9 0%, #B7BDC8 40%, #E0E1DD 100%)', 
-                padding: '10px 10px',
-            }}>
+            <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <img 
-                                src={logoPath} 
-                                alt={logoAlt} 
-                                style={{ 
-                                    width: logoWidth, 
-                                    height: logoHeight, 
-                                    margin: logoMargin 
-                                }}
-                            />
-                            {(address.title && <div style={{ 
-                                    fontWeight: 'bold', 
-                                    marginTop: '5px', 
+                            {spvData?.logo ? (
+                                <img
+                                    src={getImageSrc(spvData.logo)}
+                                    alt={logoAlt}
+                                    style={{
+                                        width: logoWidth,
+                                        height: logoHeight,
+                                        margin: logoMargin
+                                    }}
+                                />
+                            ) : (
+                                <div style={{
+                                    fontWeight: 'bold',
+                                    fontSize: '20px',
+                                    margin: logoMargin,
                                     textAlign: 'center',
-                                    fontSize: fontSize 
                                 }}>
-                                    {address.title}
+                                    {spvData?.spvtitle}
                                 </div>
                             )}
                         </div>
@@ -75,16 +69,16 @@ const PrintHeaderCommon: React.FC<PrintHeaderCommonProps> = ({
                         )}
                     </div>
                     <div style={{ textAlign: 'right', fontSize: fontSize, lineHeight: '1.4' }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{address.type}:</div>
-                        <div>{address.line1}</div>
-                        <div>{address.line2}</div>
-                        <div>{address.line3}</div>
-                        {address.line4 && <div>{address.line4}</div>}
-                        {address.registrationNumber && (
+                        <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{spvData?.spvtitle}:</div>
+                        {spvData?.companyid && (
                             <div style={{ marginTop: '5px', fontWeight: 'bold' }}>
-                                {address.registrationNumber}
+                                Company ID: {spvData?.companyid}
                             </div>
                         )}
+                        <div>{spvData?.address?.addressline1}</div>
+                        <div>{spvData?.address?.addressline2}</div>
+                        <div>{spvData?.address?.city} {spvData?.address?.country}</div>
+                        <div>{spvData?.address?.postalcode}</div>
                     </div>
                 </div>
             </div>

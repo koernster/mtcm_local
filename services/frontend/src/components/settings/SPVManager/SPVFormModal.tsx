@@ -13,6 +13,7 @@ interface SPVFormModalProps {
 const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => {
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
+        companyid: spv?.companyid || '',
         spvtitle: spv?.spvtitle || '',
         spvdescription: spv?.spvdescription || '',
         logo: spv?.logo || '',
@@ -26,12 +27,12 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
         phone: spv?.address?.phone || '',
         website: spv?.address?.website || '',
         // Payment detail fields
-        accountname: spv?.paymentdetail?.accountname || '',
-        beneficiarybank: spv?.paymentdetail?.beneficiarybank || '',
-        correspondent_aba: spv?.paymentdetail?.correspondent_aba || '',
-        correspondent_swift: spv?.paymentdetail?.correspondent_swift || '',
-        correspondentbank: spv?.paymentdetail?.correspondentbank || '',
-        iban: spv?.paymentdetail?.iban || ''
+        iban: spv?.paymentdetail?.iban || '',
+        bankname: spv?.paymentdetail?.bankname || '',
+        address: spv?.paymentdetail?.address || '',
+        beneficiary: spv?.paymentdetail?.beneficiary || '',
+        bicintermediary: spv?.paymentdetail?.bicintermediary || '',
+        swift: spv?.paymentdetail?.swift || ''
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -49,6 +50,7 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
         setSaving(true);
         try {
             await onSave({
+                companyid: formData.companyid || undefined,
                 spvtitle: formData.spvtitle,
                 spvdescription: formData.spvdescription,
                 logo: formData.logo || undefined,
@@ -63,12 +65,12 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
                     website: formData.website
                 },
                 paymentdetail: {
-                    accountname: formData.accountname,
-                    beneficiarybank: formData.beneficiarybank,
-                    correspondent_aba: formData.correspondent_aba,
-                    correspondent_swift: formData.correspondent_swift,
-                    correspondentbank: formData.correspondentbank,
-                    iban: formData.iban
+                    iban: formData.iban,
+                    bankname: formData.bankname,
+                    address: formData.address,
+                    beneficiary: formData.beneficiary,
+                    bicintermediary: formData.bicintermediary,
+                    swift: formData.swift
                 }
             });
         } finally {
@@ -86,7 +88,7 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
             <Modal.Body>
                 <Form onSubmit={handleSubmit}>
                     <Row className="mb-3">
-                        <Col md={12}>
+                        <Col md={6}>
                             <Form.Group>
                                 <Form.Label>Title *</Form.Label>
                                 <StyledFormControl
@@ -96,6 +98,18 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
                                     onChange={handleChange}
                                     placeholder="Enter title"
                                     required
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Company ID</Form.Label>
+                                <StyledFormControl
+                                    type="text"
+                                    name="companyid"
+                                    value={formData.companyid}
+                                    onChange={handleChange}
+                                    placeholder="Enter company ID"
                                 />
                             </Form.Group>
                         </Col>
@@ -246,13 +260,40 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
                     <Row className="mb-3">
                         <Col md={6}>
                             <Form.Group>
-                                <Form.Label>Account Name</Form.Label>
+                                <Form.Label>Bank Name</Form.Label>
                                 <StyledFormControl
                                     type="text"
-                                    name="accountname"
-                                    value={formData.accountname}
+                                    name="bankname"
+                                    value={formData.bankname}
                                     onChange={handleChange}
-                                    placeholder="Enter account name"
+                                    placeholder="Enter bank name"
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Address</Form.Label>
+                                <StyledFormControl
+                                    type="text"
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    placeholder="Enter address"
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Beneficiary</Form.Label>
+                                <StyledFormControl
+                                    type="text"
+                                    name="beneficiary"
+                                    value={formData.beneficiary}
+                                    onChange={handleChange}
+                                    placeholder="Enter beneficiary"
                                 />
                             </Form.Group>
                         </Col>
@@ -273,52 +314,25 @@ const SPVFormModal: React.FC<SPVFormModalProps> = ({ spv, onClose, onSave }) => 
                     <Row className="mb-3">
                         <Col md={6}>
                             <Form.Group>
-                                <Form.Label>Beneficiary Bank</Form.Label>
+                                <Form.Label>SWIFT</Form.Label>
                                 <StyledFormControl
                                     type="text"
-                                    name="beneficiarybank"
-                                    value={formData.beneficiarybank}
+                                    name="swift"
+                                    value={formData.swift}
                                     onChange={handleChange}
-                                    placeholder="Enter beneficiary bank"
+                                    placeholder="Enter SWIFT code"
                                 />
                             </Form.Group>
                         </Col>
                         <Col md={6}>
                             <Form.Group>
-                                <Form.Label>Correspondent Bank</Form.Label>
+                                <Form.Label>BIC Intermediary</Form.Label>
                                 <StyledFormControl
                                     type="text"
-                                    name="correspondentbank"
-                                    value={formData.correspondentbank}
+                                    name="bicintermediary"
+                                    value={formData.bicintermediary}
                                     onChange={handleChange}
-                                    placeholder="Enter correspondent bank"
-                                />
-                            </Form.Group>
-                        </Col>
-                    </Row>
-
-                    <Row className="mb-3">
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label>Correspondent ABA</Form.Label>
-                                <StyledFormControl
-                                    type="text"
-                                    name="correspondent_aba"
-                                    value={formData.correspondent_aba}
-                                    onChange={handleChange}
-                                    placeholder="Enter correspondent ABA"
-                                />
-                            </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label>Correspondent SWIFT</Form.Label>
-                                <StyledFormControl
-                                    type="text"
-                                    name="correspondent_swift"
-                                    value={formData.correspondent_swift}
-                                    onChange={handleChange}
-                                    placeholder="Enter correspondent SWIFT"
+                                    placeholder="Enter BIC intermediary"
                                 />
                             </Form.Group>
                         </Col>

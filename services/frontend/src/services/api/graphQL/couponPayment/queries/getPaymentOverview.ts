@@ -33,25 +33,29 @@ export const GET_PAYMENT_OVERVIEW_BY_CASE = gql`
         }
         spv {
           id
-          spvtitle
+          companyid
           spvdescription
-          paymentdetail {
-            iban
-            correspondentbank
-            correspondent_swift
-            correspondent_aba
-            beneficiarybank
-            accountname
-            swift
-          }
+          spvtitle
+          logo
           address {
+            id  
             addressline1
             addressline2
             city
             country
             postalcode
-            phone
             email
+            phone
+            website
+          }
+          paymentdetail {
+            id
+            iban
+            bankname
+            address
+            beneficiary
+            bicintermediary
+            swift
           }
         }
         company {

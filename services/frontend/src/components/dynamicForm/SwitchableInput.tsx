@@ -2,9 +2,15 @@
  * SwitchableInput Field Component
  * 
  * A dynamic form field that combines a PillSwitch for type selection
- * and an input field for value entry. Supports binding to two database fields:
- * - typeField: stores the selected type (e.g., 'Percentage' or 'Amount')
- * - key: stores the value (numeric or text depending on inputType)
+ * and an input field for value entry.
+ * 
+ * DATABASE FIELDS (two separate database columns):
+ * - key (e.g., "performance"): stores the numeric/text value
+ * - typeField (e.g., "performancetype"): stores the selected type from switch
+ * 
+ * SAVE BEHAVIOR:
+ * - Both fields trigger save on change (handleChange + handleBlur)
+ * - When type changes, value is cleared and both fields are saved
  * 
  * Supported inputType values:
  * - "dynamic": Switches between percentage/currency based on switch selection
@@ -14,33 +20,31 @@
  * 
  * Configuration in JSON:
  * {
- *   "key": "managementfee",
- *   "name": "ManagementFee",
- *   "alias": "Management Fee",
- *   "fieldInfo": "Management fee for the product",
+ *   "key": "performance",              // <- VALUE database field
+ *   "name": "Performance",
+ *   "alias": "Performance",
+ *   "fieldInfo": "Performance metric",
  *   "reactComponent": "SwitchableInput",
  *   "required": true,
  *   "props": {
- *     "typeField": "managementfeetype",
+ *     "typeField": "performancetype",  // <- TYPE database field
  *     "switchOptions": [
- *       { "value": "Percentage", "label": "%", "icon": "FaPercentage" },
- *       { "value": "Amount", "label": "$", "icon": "FaMoneyBillAlt" }
+ *       { "value": "0", "icon": "FaPercentage" },
+ *       { "value": "1", "icon": "FaHashtag" }
  *     ],
- *     "inputType": "dynamic",  // "dynamic", "percentage", "currency", or "text"
+ *     "inputType": "dynamic",
  *     "min": 0,
- *     "max": 100,  // for percentage type
- *     "placeholder": "Enter value"  // for text type
+ *     "max": 100
  *   }
  * }
  */
 import React, { useCallback, useMemo, useRef } from 'react';
-import { FaPercentage, FaMoneyBillAlt, FaHashtag } from 'react-icons/fa';
+import { FaPercentage, FaHashtag } from 'react-icons/fa';
 import PillSwitch from '../common/PillSwitch';
 import PercentageInput from '../common/PercentageInput';
-import FormattedCurrencyInput from '../common/FormattedCurrencyInput';
 import { StyledFormControl } from '../styled/CommonStyled';
 import { getFieldErrorStyle } from '../common/FormValidation';
-import { FIELD_TYPES, FieldType, isPercentageType, getFieldType } from '../../types/common/fieldTypes';
+import { FIELD_TYPES } from '../../types/common/fieldTypes';
 import type { FieldProps } from '../../types/dynamicForm';
 import styled from 'styled-components';
 
@@ -53,7 +57,6 @@ interface SwitchOption {
 // Icon mapping
 const IconMap: Record<string, React.ReactNode> = {
     FaPercentage: <FaPercentage />,
-    FaMoneyBillAlt: <FaMoneyBillAlt />,
     FaHashtag: <FaHashtag />,
 };
 
@@ -103,18 +106,25 @@ const SwitchableInput: React.FC<FieldProps> = ({
         if (configuredOptions && configuredOptions.length > 0) {
             return configuredOptions;
         }
-        // Default switch options - using string representations of the numeric FIELD_TYPES
+        // Default switch options - Percentage and Number
         return [
             { value: String(FIELD_TYPES.PERCENTAGE), icon: 'FaPercentage' },
-            { value: String(FIELD_TYPES.AMOUNT), icon: 'FaMoneyBillAlt' },
+            { value: String(FIELD_TYPES.AMOUNT), icon: 'FaHashtag' },
         ];
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [switchOptionsJson]);
 
-    // Get current type value directly (not in useCallback to avoid stale closures)
+    // Get current type value directly from formContext
     const typeValue = formContext?.getValue(typeField);
-    const currentType = getFieldType(typeValue as string);
-    const isPercentage = isPercentageType(currentType);
+
+    // Convert to string for comparison with switch options (handles both string and number from DB)
+    const currentTypeString = typeValue !== null && typeValue !== undefined
+        ? String(typeValue)
+        : switchOptions[0]?.value || '0';  // Default to first option
+
+    // Determine if current selection is "percentage-like" (first option)
+    // This controls which input type to render when inputType is "dynamic"
+    const isPercentage = currentTypeString === switchOptions[0]?.value;
 
     // Use ref to avoid stale closure issues with formContext
     const formContextRef = useRef(formContext);
@@ -127,26 +137,34 @@ const SwitchableInput: React.FC<FieldProps> = ({
             return;
         }
 
-        // Clear the value when type changes
-        onChange(null);
-
-        // Update the type field via formContext if available
+        // Clear the value when type changes and trigger save
         const ctx = formContextRef.current;
         if (ctx) {
+            // Clear value field
+            ctx.handleChange(config.key, null);
+            ctx.handleBlur(config.key, null);
+
+            // Update the type field
             ctx.handleChange(typeField, newType as string);
             ctx.handleBlur(typeField, newType as string);
         }
-    }, [typeField, onChange]);
+    }, [typeField, config.key]);
 
-    // Handle value change
+    // Handle value change - triggers change in Redux
     const handleValueChange = useCallback((newValue: number | null) => {
-        onChange(newValue);
-    }, [onChange]);
+        const ctx = formContextRef.current;
+        if (ctx) {
+            ctx.handleChange(config.key, newValue);
+        }
+    }, [config.key]);
 
-    // Handle value blur
+    // Handle value blur - triggers save to database
     const handleValueBlur = useCallback((newValue: number | null) => {
-        onBlur(newValue);
-    }, [onBlur]);
+        const ctx = formContextRef.current;
+        if (ctx) {
+            ctx.handleBlur(config.key, newValue);
+        }
+    }, [config.key]);
 
     // Memoize pill switch options to prevent unnecessary re-renders
     const pillSwitchOptions = useMemo(() =>
@@ -176,7 +194,7 @@ const SwitchableInput: React.FC<FieldProps> = ({
             );
         }
 
-        // If inputType is 'dynamic', choose based on currentType
+        // If inputType is 'dynamic', choose based on currentType (first switch option = percentage)
         const shouldUsePercentage = inputType === 'percentage' ||
             (inputType === 'dynamic' && isPercentage);
 
@@ -196,18 +214,26 @@ const SwitchableInput: React.FC<FieldProps> = ({
             );
         }
 
+        // Plain number input (for inputType 'number' or 'dynamic' with second option)
+        // Uses StyledFormControl with type="number" for simple numeric input
         return (
-            <FormattedCurrencyInput
-                min={min}
-                showSymbol={false}
-                value={value as number | null}
-                onChange={handleValueChange}
-                onBlur={handleValueBlur}
+            <StyledFormControl
+                type="number"
+                value={value !== null && value !== undefined ? String(value) : ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                    handleValueChange(val);
+                }}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                    const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                    handleValueBlur(val);
+                }}
                 style={getFieldErrorStyle(error)}
                 disabled={disabled || formContext?.isLoading(config.key)}
                 required={config.required}
-                placeholder="0.00"
+                placeholder={props.placeholder as string || "0"}
                 name={`${config.key}_input`}
+                min={min}
             />
         );
     };
@@ -217,7 +243,7 @@ const SwitchableInput: React.FC<FieldProps> = ({
             <SwitchRow>
                 <PillSwitch
                     options={pillSwitchOptions}
-                    value={String(currentType)}
+                    value={currentTypeString}
                     onChange={handleTypeChange}
                     disabled={disabled || (formContext?.isLoading(typeField || '') ?? false)}
                     isLoading={formContext?.isLoading(typeField || '') ?? false}

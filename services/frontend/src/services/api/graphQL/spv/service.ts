@@ -150,12 +150,12 @@ class SpvService {
                 mutation: UPSERT_PAYMENT_DETAIL,
                 variables: {
                     id: paymentDetailId,
-                    accountname: cleanPayment.accountname || '',
-                    beneficiarybank: cleanPayment.beneficiarybank || '',
-                    correspondent_aba: cleanPayment.correspondent_aba || '',
-                    correspondent_swift: cleanPayment.correspondent_swift || '',
-                    correspondentbank: cleanPayment.correspondentbank || '',
-                    iban: cleanPayment.iban || ''
+                    iban: cleanPayment.iban || '',
+                    bankname: cleanPayment.bankname || '',
+                    address: cleanPayment.address || '',
+                    beneficiary: cleanPayment.beneficiary || '',
+                    bicintermediary: cleanPayment.bicintermediary || '',
+                    swift: cleanPayment.swift || ''
                 }
             });
 
@@ -168,11 +168,12 @@ class SpvService {
             }
         }
 
-        // Update the SPV itself (title, description, and logo)
+        // Update the SPV itself (title, description, logo, and companyid)
         const { data } = await client.mutate<{ update_spvs_by_pk: Spv }>({
             mutation: UPDATE_SPV,
             variables: {
                 id,
+                companyid: updates.companyid || null,
                 spvtitle: updates.spvtitle,
                 spvdescription: updates.spvdescription,
                 logo: updates.logo || null

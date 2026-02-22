@@ -18,15 +18,13 @@ interface InterestCalcOverviewPrintProps {
     caseName?: string;
 }
 
-const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({ 
-    isinId, 
+const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
+    isinId,
     isinCode = '',
     caseName = ''
 }) => {
-    const { theme } = useTheme();
     const { couponPayments } = useSelector((state: RootState) => state.couponPayment);
-    const { caseData } = useSelector((state: RootState) => state.caseSetup);
-    
+
     // Find the specific ISIN's data
     const currentIsinData = couponPayments.find(payment => payment.isinId === isinId);
     const loanBalanceData = currentIsinData?.loanBalanceOverview || [];
@@ -49,28 +47,28 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
     return (
         <PrintContainer>
             {/* Header with Logo only */}
-            <PrintHeaderCommon />
+            <PrintHeaderCommon spvData={currentIsinData?.spvData} />
 
             <LineSeparator />
-            
+
             {/* Title and Case Information */}
             <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>
                 Overview of Interest Calculation
             </div>
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '15px' }}>
                 <div>
-                    <strong>SPV:</strong> {caseData?.spv?.spvtitle || 'N/A'}
+                    <strong>SPV:</strong> {currentIsinData?.spvData?.spvtitle || 'N/A'}
                 </div>
                 <div>
-                    <strong>Compartment:</strong> {caseData?.compartmentname || caseName || 'N/A'}
+                    <strong>Compartment:</strong> {currentIsinData?.compartmentName || caseName || 'N/A'}
                 </div>
             </div>
-            
+
             <LineSeparator />
-            
+
             <div style={{ height: '10px' }}></div>
-            
+
             {/* Side by side tables */}
             <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
                 {/* Overview Table - Left Side */}
@@ -164,8 +162,8 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                                             {dateUtils.format(row.date)}
                                         </td>
                                         <td className="text-right">
-                                            {currencyUtils.format(row.amount, { 
-                                                currency: currentIsinData?.currency 
+                                            {currencyUtils.format(row.amount, {
+                                                currency: currentIsinData?.currency
                                             })}
                                         </td>
                                     </tr>
@@ -179,8 +177,8 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                                         Current Loan Balance:
                                     </td>
                                     <td className="text-right" style={{ fontWeight: 'bold' }}>
-                                        {currencyUtils.format(totalLoanBalance, { 
-                                            currency: currentIsinData?.currency 
+                                        {currencyUtils.format(totalLoanBalance, {
+                                            currency: currentIsinData?.currency
                                         })}
                                     </td>
                                 </tr>
@@ -195,7 +193,7 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                 <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>
                     Payment Overview
                 </h4>
-                
+
                 {currentIsinData?.paymentOverview && currentIsinData.paymentOverview.length > 0 ? (
                     <PrintTable>
                         <thead>
@@ -231,7 +229,7 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                                             {currencyUtils.format(row.amount, { currency: currentIsinData?.currency })}
                                         </td>
                                         <td className="text-right">
-                                            {row.paidInterest > 0 
+                                            {row.paidInterest > 0
                                                 ? currencyUtils.format(row.paidInterest, { currency: currentIsinData?.currency })
                                                 : '-'
                                             }
@@ -249,13 +247,13 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                                 <td colSpan={4} className="text-right">Total Accrued:</td>
                                 <td className="text-right">
                                     {currencyUtils.format(
-                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.amount, 0), 
+                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.amount, 0),
                                         { currency: currentIsinData?.currency }
                                     )}
                                 </td>
                                 <td className="text-right">
                                     {currencyUtils.format(
-                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.paidInterest, 0), 
+                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.paidInterest, 0),
                                         { currency: currentIsinData?.currency }
                                     )}
                                 </td>
@@ -265,8 +263,8 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                                 <td colSpan={5} className="text-right">Outstanding Interest Payment:</td>
                                 <td className="text-right">
                                     {currencyUtils.format(
-                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.amount, 0) - 
-                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.paidInterest, 0), 
+                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.amount, 0) -
+                                        currentIsinData.paymentOverview.reduce((sum, row) => sum + row.paidInterest, 0),
                                         { currency: currentIsinData?.currency }
                                     )}
                                 </td>
@@ -286,6 +284,7 @@ const InterestCalcOverviewPrint: React.FC<InterestCalcOverviewPrintProps> = ({
                 showDisclaimer={true}
                 showSignature={false}
                 showContactInfo={true}
+                spvData={currentIsinData?.spvData}
             />
 
             <PrintStyles />

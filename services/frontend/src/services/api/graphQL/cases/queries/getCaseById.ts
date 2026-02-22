@@ -41,9 +41,12 @@ export const GET_CASE_BY_ID = gql`
       spvid
       spv {
         id
+        companyid
         spvdescription
         spvtitle
+        logo
         address {
+          id
           addressline1
           addressline2
           city
@@ -52,6 +55,15 @@ export const GET_CASE_BY_ID = gql`
           email
           phone
           website
+        }
+        paymentdetail {
+          id
+          iban
+          bankname
+          address
+          beneficiary
+          bicintermediary
+          swift
         }
       }
       investmenttype {

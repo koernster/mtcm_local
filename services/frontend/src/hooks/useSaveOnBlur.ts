@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCaseData } from '../store/slices/caseSetupSlice';
 import { ISINEntry, updateCaseIsin, updateLocalIsinEntry } from '../store/slices/caseIsinsSlice';
@@ -30,16 +30,16 @@ const isValidValue = (value: any): boolean => {
 
 // Helper function to detect if field is an ISIN field
 const isIsinField = (field: string): boolean => {
-    return field.includes('isin-') || 
-           ['isinNumber', 'valoren', 'issueSize', 'currency', 'issuePrice', 'interestRate', 'couponRate'].some(isinField => 
-               field.includes(isinField)
-           );
+    return field.includes('isin-') ||
+        ['isinNumber', 'valoren', 'issueSize', 'currency', 'issuePrice', 'interestRate', 'couponRate'].some(isinField =>
+            field.includes(isinField)
+        );
 };
 
 // Helper function to detect if field is a fee field
 const isFeeField = (field: string): boolean => {
-    const feeFields = ['setupfee', 'setupfeetype', 'adminfee', 'adminfeetype', 'managementfee', 'managementfeetype', 
-                      'salesfee', 'salesfeetype', 'performancefee', 'performancefeetype', 'otherfees', 'otherfeestype'];
+    const feeFields = ['setupfee', 'setupfeetype', 'adminfee', 'adminfeetype', 'managementfee', 'managementfeetype',
+        'salesfee', 'salesfeetype', 'performancefee', 'performancefeetype', 'otherfees', 'otherfeestype'];
     return feeFields.includes(field);
 };
 
@@ -100,6 +100,31 @@ export const useSaveOnBlur = ({
     const dispatch = useDispatch();
     const currentCaseData = useSelector((state: RootState) => state.caseSetup.caseData);
 
+    // Use a ref to always have access to the latest basket assets
+    // This avoids stale closure issues when onChange and onBlur are called together
+    const basketAssetsRef = useRef(currentCaseData?.case_assetbaskets);
+    basketAssetsRef.current = currentCaseData?.case_assetbaskets;
+
+    // Helper to dispatch setCaseData while preserving unsaved basket assets
+    const dispatchWithPreservedBasketAssets = useCallback((updatedCase: any) => {
+        // Use ref to get fresh basket assets instead of stale closure value
+        const currentBasketAssets = basketAssetsRef.current || [];
+        const unsavedBasketAssets = currentBasketAssets
+            .filter((asset: any) => asset.id?.toString().startsWith('new'));
+
+        if (unsavedBasketAssets.length > 0) {
+            const backendAssets = updatedCase.case_assetbaskets || [];
+            // Create a new object instead of mutating to avoid Redux frozen object error
+            const mergedCase = {
+                ...updatedCase,
+                case_assetbaskets: [...backendAssets, ...unsavedBasketAssets]
+            };
+            dispatch(setCaseData(mergedCase));
+        } else {
+            dispatch(setCaseData(updatedCase));
+        }
+    }, [dispatch]);
+
     // Handle blur event for form fields to save it on database.
     const handleBlur = useCallback(async (field: string, value: any) => {
         if (!activeCaseId) return;
@@ -112,7 +137,7 @@ export const useSaveOnBlur = ({
 
         setFieldLoading(field, true);
         setFieldError(field, null);
-        
+
         try {
             // Check if this is an ISIN field
             if (isIsinField(field)) {
@@ -125,7 +150,7 @@ export const useSaveOnBlur = ({
 
                 // Use Redux thunk to update the ISIN
                 await dispatch(updateCaseIsin({ id: isinId, field: fieldName, value, couponTypeId: currentCaseData?.copontype?.id, issueDate: currentCaseData?.issuedate }) as any);
-                
+
                 // check parsed key is not null fieldName as keyof ISINEntry
                 const key = fieldName as keyof ISINEntry;
 
@@ -141,12 +166,12 @@ export const useSaveOnBlur = ({
             } else if (isFeeField(field)) {
                 // Handle fee fields
                 const caseFee = currentCaseData?.casefee;
-                
+
                 if (caseFee?.id) {
                     const updateData: any = {
                         [field]: value
                     };
-                    
+
                     // Reset asset value to zero when value type changes
                     if (field.endsWith('type')) {
                         updateData[field.replace('type', '')] = null;
@@ -164,7 +189,7 @@ export const useSaveOnBlur = ({
 
                 // Refresh case data to get updated fee information
                 const updatedCase = await CaseService.getInstance().getCaseById(activeCaseId);
-                dispatch(setCaseData(updatedCase));
+                dispatchWithPreservedBasketAssets(updatedCase);
                 onSuccess?.(field, value);
             } else if (isCostField(field)) {
                 // Handle cost fields
@@ -174,7 +199,7 @@ export const useSaveOnBlur = ({
                     const updateData: any = {
                         [field]: value
                     };
-                    
+
                     // Reset asset value to zero when value type changes
                     if (field.endsWith('type')) {
                         updateData[field.replace('type', 's')] = null;
@@ -192,7 +217,7 @@ export const useSaveOnBlur = ({
 
                 // Refresh case data to get updated cost information
                 const updatedCase = await CaseService.getInstance().getCaseById(activeCaseId);
-                dispatch(setCaseData(updatedCase));
+                dispatchWithPreservedBasketAssets(updatedCase);
                 onSuccess?.(field, value);
             } else if (isSubscriptionField(field)) {
                 // Handle subscription data fields
@@ -213,7 +238,7 @@ export const useSaveOnBlur = ({
 
                 // Refresh case data to get updated subscription information
                 const updatedCase = await CaseService.getInstance().getCaseById(activeCaseId);
-                dispatch(setCaseData(updatedCase));
+                dispatchWithPreservedBasketAssets(updatedCase);
                 onSuccess?.(field, value);
             } else if (isBasketAssetField(field)) {
                 // Handle basket asset fields
@@ -223,22 +248,22 @@ export const useSaveOnBlur = ({
                 }
 
                 const { assetId, fieldName } = basketAssetInfo;
-                
+
                 // Find the asset in current case data
                 const currentAssets = currentCaseData?.case_assetbaskets || [];
                 const existingAsset = currentAssets.find(asset => asset.id?.toString() === assetId);
-                
+
                 if (existingAsset && existingAsset.id && typeof existingAsset.id === 'string' && !existingAsset.id.startsWith('new')) {
                     // Update existing asset
                     const updateData: any = {
                         [fieldName]: value
                     };
-                    
+
                     // Reset asset value to zero when value type changes
                     if (fieldName === 'valuetype') {
                         updateData.assetvalue = null;
                     }
-                    
+
                     await CaseService.getInstance().updateBasketAsset(existingAsset.id, updateData);
                 } else {
                     // Create new asset - this shouldn't happen in normal flow but handle it
@@ -252,7 +277,7 @@ export const useSaveOnBlur = ({
 
                 // Refresh case data to get updated basket asset information
                 const updatedCase = await CaseService.getInstance().getCaseById(activeCaseId);
-                dispatch(setCaseData(updatedCase));
+                dispatchWithPreservedBasketAssets(updatedCase);
                 onSuccess?.(field, value);
             } else {
                 // Handle regular case data fields
@@ -267,14 +292,14 @@ export const useSaveOnBlur = ({
                     [dataKey]: value
                 });
 
-                // Update entire Redux store with latest backend data
-                dispatch(setCaseData(updatedCase));
+                // Update Redux store with backend data, preserving unsaved basket assets
+                dispatchWithPreservedBasketAssets(updatedCase);
                 onSuccess?.(field, value);
             }
         } catch (error) {
             // If save fails, handle the error appropriately
             let errorMessage: string;
-            
+
             if (isIsinField(field)) {
                 errorMessage = `Failed to save ISIN ${field}. Please try again.`;
             } else if (isFeeField(field)) {
@@ -286,14 +311,14 @@ export const useSaveOnBlur = ({
             } else {
                 errorMessage = `Failed to save ${field}. Please try again.`;
             }
-            
+
             setFieldError(field, errorMessage);
-            
+
             // For case data, fee, and cost fields, try to fetch the latest case data to ensure UI is in sync with backend
             if (!isIsinField(field)) {
                 try {
                     const latestCase = await CaseService.getInstance().getCaseById(activeCaseId);
-                    dispatch(setCaseData(latestCase));
+                    dispatchWithPreservedBasketAssets(latestCase);
                 } catch (fetchError) {
                     console.error('Failed to fetch latest case data:', fetchError);
                 }
@@ -303,24 +328,24 @@ export const useSaveOnBlur = ({
         } finally {
             setFieldLoading(field, false);
         }
-    }, [activeCaseId, dispatch, setFieldLoading, setFieldError, onSuccess, onError, currentCaseData]);
+    }, [activeCaseId, dispatch, setFieldLoading, setFieldError, onSuccess, onError, currentCaseData, dispatchWithPreservedBasketAssets]);
 
     // Mark this case ready for subscription along with background setup.
     const readyForSubscription = useCallback(async () => {
-        if(!activeCaseId)
+        if (!activeCaseId)
             return;
 
         setFieldLoading('readyForSubscription', true);
         setFieldError('readyForSubscription', null);
-        
+
         try {
             const freq = currentCaseData?.coponfrequency;
             const iDate = currentCaseData?.issuedate ? new Date(currentCaseData.issuedate) : null;
             const mDate = currentCaseData?.maturitydate ? new Date(currentCaseData.maturitydate) : null;
-            
+
             if (iDate && mDate && freq) {
                 // calculate coupon payment dates
-                const events = setupEvents(activeCaseId,iDate, mDate, freq.frequency);
+                const events = setupEvents(activeCaseId, iDate, mDate, freq.frequency);
                 await EventService.getInstance().createEventTransactionsBatch(events);
 
                 //save compartmentstatusid to subscription = 9.
@@ -342,7 +367,7 @@ export const useSaveOnBlur = ({
             const errorMessage = 'Failed to prepare case for subscription. Please try again.';
             setFieldError('readyForSubscription', errorMessage);
             onError?.(
-                'readyForSubscription', 
+                'readyForSubscription',
                 error instanceof Error ? error : new Error(errorMessage)
             );
         } finally {

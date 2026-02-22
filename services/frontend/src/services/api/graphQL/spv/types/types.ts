@@ -1,5 +1,6 @@
 export interface Spv {
     id: string;
+    companyid?: string;
     spvdescription: string;
     spvtitle: string;
     logo?: string;
@@ -17,10 +18,10 @@ export interface Spv {
     paymentdetail?: {
         id?: string;
         iban: string;
-        correspondent_aba: string;
-        correspondentbank: string;
-        correspondent_swift: string;
-        beneficiarybank: string;
-        accountname: string;
+        bankname: string;
+        address: string;
+        beneficiary: string;
+        bicintermediary: string;
+        swift: string;
     }
 }

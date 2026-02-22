@@ -1,5 +1,6 @@
 import client from '../client';
 import { GET_COMPANY_BY_HBID, GET_COMPANY_BY_ID } from './queries/getCompany';
+import { SEARCH_COMPANIES } from './queries/searchCompany';
 import { INSERT_COMPANY } from './mutations/insertCompany';
 import { UPDATE_COMPANY, UPDATE_COMPANY_WITH_ADDRESS } from './mutations/updateCompany';
 import { Company, CompanyData, CompaniesVariables } from './types/company';
@@ -26,6 +27,16 @@ class CompanyService {
         return data.companies.length > 0 ? data.companies[0] : null;
     }
 
+    public async searchCompanies(searchTerm: string, isUnderlyingClient: boolean = true): Promise<Company[]> {
+        const { data } = await client.query<CompanyData>({
+            query: SEARCH_COMPANIES,
+            variables: { searchTerm: `%${searchTerm}%`, isUnderlyingClient },
+            fetchPolicy: 'network-only'
+        });
+
+        return data.companies || [];
+    }
+
     public async createCompany(hbid: string, companyname: string, clienttype?: boolean): Promise<Company> {
         const id = generateUUID();
         const { data } = await client.mutate<{ insert_companies_one: Company }>({
@@ -38,7 +49,7 @@ class CompanyService {
 
     public async updateCompany(id: string, updates: Partial<Company>): Promise<Company> {
         // Check if address data is being updated
-        const hasAddressUpdate = updates.addressByAddressid && 
+        const hasAddressUpdate = updates.addressByAddressid &&
             Object.keys(updates.addressByAddressid).length > 0;
 
         if (!hasAddressUpdate) {
@@ -57,10 +68,10 @@ class CompanyService {
             variables: { id },
             fetchPolicy: 'network-only'
         });
-        
+
         const currentCompany = queryData.companies_by_pk;
         const existingAddressId = currentCompany?.addressid;
-        
+
         // Clean address data by removing GraphQL metadata fields like __typename
         const { __typename, ...cleanAddressData } = updates.addressByAddressid as any;
         const addressData = cleanAddressData;
@@ -73,7 +84,7 @@ class CompanyService {
             // Create new address and link it to company
             const newAddressId = generateUUID();
             companyData.addressid = newAddressId;
-            
+
             const { data } = await client.mutate<{ update_companies_by_pk: Company }>({
                 mutation: UPDATE_COMPANY_WITH_ADDRESS,
                 variables: {

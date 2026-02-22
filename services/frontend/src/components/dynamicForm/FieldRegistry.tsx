@@ -54,6 +54,7 @@ const DateInput: React.FC<FieldProps> = ({
 /**
  * Select Input Field
  * Supports excluding specific options via config.options.excludeValues
+ * Handles both string ID values and object values with id property
  */
 const SelectInput: React.FC<FieldProps> = ({
     config,
@@ -74,9 +75,22 @@ const SelectInput: React.FC<FieldProps> = ({
         return !excludeValues.includes(optionValue);
     });
 
+    // Extract the actual value - handle both string and object values
+    // If value is an object with valueKey property (e.g., { id: "123", name: "Option" }), extract the ID
+    // Otherwise use value directly as string
+    const selectedValue = React.useMemo(() => {
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object' && value !== null) {
+            const objValue = (value as Record<string, unknown>)[valueKey];
+            return objValue !== undefined ? String(objValue) : '';
+        }
+        return String(value);
+    }, [value, valueKey]);
+
     return (
         <StyledSelect
-            value={(value as string) || ''}
+            value={selectedValue}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                 const newValue = e.target.value;
                 onChange(newValue);

@@ -70,68 +70,6 @@ const FinStructureDetails: React.FC = () => {
         }
     };
 
-    const handleAddISIN = async () => {
-        if (!activeCaseId) return;
-        setLoadingISINState(true);
-        try {
-            //validate coupon type before creating isin.
-            if (!caseData?.copontype?.id) {
-                toast.error('Please select a coupon type before adding ISINs.');
-                return;
-            }
-
-            const couponTypeId = caseData.copontype.id;
-
-            // Create a new ISIN entry with default values
-            const newEntry: ISINEntry = {
-                id: generateUUID(),
-                isinNumber: '',
-                valoren: '',
-                issueSize: '',
-                currencyid: null,
-                currency: process.env.REACT_APP_DEFAULT_CURRENCY || 'CHF',
-                issuePrice: 0,
-                interestRate: 0,
-                couponRate: 0,
-            };
-
-            // Use the hook's createISIN method with ISINEntry and couponType
-            await createISIN(newEntry, couponTypeId);
-        } catch (error) {
-            console.error('Failed to create new ISIN:', error);
-            toast.error('Failed to create new ISIN.');
-        } finally {
-            setLoadingISINState(false); 
-        }
-    };
-
-    const handleRemoveISIN = async (id: string) => {
-        if (isinEntries.length <= 1) {
-            // Don't allow removing the last ISIN
-            return;
-        }
-
-        try {
-            setFieldLoading(id, true);
-            await deleteISIN(id);
-        } catch (error) {
-            console.error('Failed to delete ISIN:', error);
-        }finally{
-            setFieldLoading(id, false);
-        }
-    };
-
-    const handleISINChange = (id: string, field: keyof ISINEntry, value: string | number) => {
-        // Update local state immediately for better UX (onChange - Redux only)
-        dispatch(updateLocalIsinEntry({ id, field, value }));
-    };
-
-    const handleISINBlur = (id: string, field: keyof ISINEntry, value: string | number) => {
-       // Use the saveOnBlur hook to handle the database update (onBlur - database save)
-        const fieldName = `${field}-${id}`;
-        handleBlur(fieldName, value);
-    };
-
     const renderSkeletonAccordion = () => (
         <Accordion flush>
             {[...Array(3)].map((_, index) => (

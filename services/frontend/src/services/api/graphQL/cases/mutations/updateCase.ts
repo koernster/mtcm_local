@@ -25,12 +25,31 @@ export const UPDATE_CASE = gql`
           website
         }
       }
+      companyByUnderlyingcompanyid {
+        id
+        companyname
+        isunderlyingclient
+        addressByAddressid {
+          addressline1
+          addressline2
+          city
+          state_or_province
+          country
+          postalcode
+          phone
+          email
+          website
+        }
+     }
       spvid
       spv {
         id
+        companyid
         spvdescription
         spvtitle
+        logo
         address {
+          id
           addressline1
           addressline2
           city
@@ -39,6 +58,15 @@ export const UPDATE_CASE = gql`
           email
           phone
           website
+        }
+        paymentdetail {
+          id
+          iban
+          bankname
+          address
+          beneficiary
+          bicintermediary
+          swift
         }
       }
       investmenttype {
@@ -111,25 +139,24 @@ export const UPDATE_CASE = gql`
         legalcosts
         legalcosttype
       }
+      case_assetbaskets(order_by: {createdat: asc}) {
+        id
+        assetname
+        assetvalue
+        valuetype
+      }
+      casesubscriptiondata {
+        id
+        caseid
+        distributionpaidbyinvs
+        salesfeepaidbyinves
+        salesnotpaidissuedate
+        salesnotpaidmaturitydate
+      }
       broker
       trustee
       coponpaymentdate
-      companyByUnderlyingcompanyid {
-        id
-        companyname
-        isunderlyingclient
-        addressByAddressid {
-          addressline1
-          addressline2
-          city
-          state_or_province
-          country
-          postalcode
-          phone
-          email
-          website
-        }
-      }
     }
   }
 `;
+

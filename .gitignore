@@ -42,3 +42,6 @@ services/frontend_old/
 # Test
 test-results/
 coverage/
+services/frontend/e2e/.auth/
+services/frontend/e2e/.env.e2e
+services/frontend/e2e/playwright-report/

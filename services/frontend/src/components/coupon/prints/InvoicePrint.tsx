@@ -50,42 +50,30 @@ const InvoicePrint: React.FC<InvoicePrintProps> = ({
     // Shared header component
     const renderHeader = () => (
         <PrintHeaderCommon
+            spvData={spvData}
             logoWidth={paymentData.length === 0 ? '160px' : '150px'}
             logoMargin={paymentData.length === 0 ? '15px 0 0 0' : '0 20px 0 0'}
             fontSize={paymentData.length === 0 ? '12px' : '10px'}
         />
     );
 
-    // Shared SPV and Client Information
-    const renderSPVClientInfo = () => (
+    const renderBillToAddress = () => (
         <div style={{ marginBottom: '20px', fontSize: '11px' }}>
-            {paymentData.length === 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <div style={{ fontWeight: 'bold', flex: 1 }}>SPV</div>
-                    <div style={{ fontWeight: 'bold', flex: 1, textAlign: 'right' }}>Client</div>
-                </div>
-            )}
-            {paymentData.length === 0 && (
-                <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '0 0 15px 0' }} />
-            )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ flex: 1, lineHeight: '1.4' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>acting as administrator of:</div>
-                    <div>{spvData?.spvtitle}</div>
-                    <div>{companyData?.companyname ?? ''} {compartmentName ? `(${compartmentName})` : ''}</div>
-                    <div>{spvData?.address?.addressline1 ?? ''}</div>
-                    <div>{spvData?.address?.addressline2 ?? ''}</div>
-                    <div>{spvData?.address?.postalcode ?? ''} {spvData?.address?.city ?? ''}</div>
-                    <div>{spvData?.address?.country ?? ''}</div>
-                </div>
-                <div style={{ flex: 1, textAlign: 'right', lineHeight: '1.4' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>To:</div>
+                <div style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Bill To:</div>
                     <div>{companyData?.companyname ?? ''}</div>
+                    {/* <div>{companyData?.companyid ? 'CompanyID: ' + companyData?.companyid : ''}</div> */}
                     <div>{companyData?.addressByAddressid?.addressline1}</div>
                     <div>{companyData?.addressByAddressid?.addressline2}</div>
                     <div>{companyData?.addressByAddressid?.city}</div>
                     <div>{companyData?.addressByAddressid?.country ?? ''}
-                         {companyData?.addressByAddressid?.postalcode ? `, ${companyData?.addressByAddressid?.postalcode}` : '' }</div>
+                        {companyData?.addressByAddressid?.postalcode ? `, ${companyData?.addressByAddressid?.postalcode}` : ''}</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'right', lineHeight: '1.4' }}>
+                    <div><b>Invoice Date:</b> {dateUtils.format(new Date().toISOString())}</div>
+                    <div><b>Terms:</b> Due on Recepit</div>
+                    <div><b>Due Date:</b> {dateUtils.format(new Date().toISOString())}</div>
                 </div>
             </div>
         </div>
@@ -95,10 +83,10 @@ const InvoicePrint: React.FC<InvoicePrintProps> = ({
     const renderBankDetails = () => (
         <div style={{ marginTop: '20px', fontSize: '11px', lineHeight: '1.5' }}>
             <div style={{ marginBottom: '10px' }}>
-                Please proceed with the payment to the following account until latest (end date period).
+                Please proceed with the payment <b>{currentIsinData?.currency}</b> to the following account until latest (end date period).
             </div>
 
-            {/* Beneficiary Bank Table */}
+            {/* Bank Details Table */}
             <InlineTable>
                 <colgroup>
                     <col style={{ width: '20%' }} />
@@ -106,44 +94,28 @@ const InvoicePrint: React.FC<InvoicePrintProps> = ({
                 </colgroup>
                 <tbody>
                     <tr>
-                        <td className="label">Beneficiary Bank</td>
-                        <td>{spvData?.paymentdetail?.beneficiarybank}</td>
+                        <td className="label">Bank Name</td>
+                        <td>{spvData?.paymentdetail?.bankname}</td>
                     </tr>
                     <tr>
-                        <td className="label">SWIFT</td>
-                        <td>{spvData?.paymentdetail?.correspondent_swift}</td>
+                        <td className="label">Address</td>
+                        <td>{spvData?.paymentdetail?.address}</td>
                     </tr>
                     <tr>
-                        <td className="label">IBAN</td>
+                        <td className="label">Beneficiary</td>
+                        <td>{spvData?.paymentdetail?.beneficiary}</td>
+                    </tr>
+                    <tr>
+                        <td className="label">{currentIsinData?.currency} IBAN</td>
                         <td>{spvData?.paymentdetail?.iban}</td>
                     </tr>
                     <tr>
-                        <td className="label">Account Name</td>
-                        <td>{spvData?.paymentdetail?.accountname}</td>
-                    </tr>
-                </tbody>
-            </InlineTable>
-
-            {/* Correspondent Bank Table */}
-            <InlineTable>
-                <colgroup>
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '80%' }} />
-                </colgroup>
-                <tbody>
-                    <tr>
-                        <td className="label">
-                            Correspondent Bank <br /><span style={{ fontSize: '10px', fontStyle: 'italic', fontWeight: 'normal' }}>(Swift Field 56a)</span>
-                        </td>
-                        <td>{spvData?.paymentdetail?.correspondentbank}</td>
-                    </tr>
-                    <tr>
                         <td className="label">SWIFT</td>
-                        <td>{spvData?.paymentdetail?.correspondent_swift}</td>
+                        <td>{spvData?.paymentdetail?.swift}</td>
                     </tr>
                     <tr>
-                        <td className="label">ABA</td>
-                        <td>{spvData?.paymentdetail?.correspondent_aba}</td>
+                        <td className="label">BIC Intermediary</td>
+                        <td>{spvData?.paymentdetail?.bicintermediary}</td>
                     </tr>
                 </tbody>
             </InlineTable>
@@ -164,26 +136,14 @@ const InvoicePrint: React.FC<InvoicePrintProps> = ({
 
             {renderHeader()}
 
-            {renderSPVClientInfo()}
-
-            {/* Interest Payment Invoice Message */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: paymentData.length === 0 ? '15px' : '0px',
-                fontSize: '12px'
-            }}>
-                <div style={{ fontWeight: 'bold' }}>Interest Payment Invoice</div>
-                <div style={{ fontWeight: 'bold' }}>{dateUtils.format(new Date().toISOString())}</div>
-            </div>
+            {renderBillToAddress()}
 
             <LineSeparator />
 
             {/* Client Message */}
             <div style={{ marginBottom: '20px', marginTop: '20px', fontSize: '11px', lineHeight: '1.6' }}>
-                <div style={{ marginBottom: paymentData.length === 0 ? '10px' : '0px' }}>Dear Client,</div>
-                <div>Please find below the due amount for the interest payments based on the Loan Agreement dated (setup loan agreement date)</div>
+                <div style={{ marginBottom: paymentData.length === 0 ? '10px' : '0px' }}>Dear {companyData?.companyname ?? ''},</div>
+                <div>Please find the due interest payments amount for <b>(Compartment Name: {currentIsinData?.compartmentName})</b> based on the Loan Agreement dated (setup loan agreement date).</div>
             </div>
 
             {/* Payment Data Table or Empty State */}
@@ -192,62 +152,63 @@ const InvoicePrint: React.FC<InvoicePrintProps> = ({
                     No payment data available for this ISIN.
                 </div>
             ) : (
-                <PrintTable>
-                    <thead>
-                        <tr>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>#Days</th>
-                            <th>Interest (%)</th>
-                            <th>Accrued</th>
-                            <th>Paid Interest</th>
-                            <th>Payment Date</th>
-                            <th>Currency</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {paymentData.map((row) => (
-                            <tr key={row.id}>
-                                <td className="text-center">{dateUtils.format(row.startDate)}</td>
-                                <td className="text-center">{dateUtils.format(row.endDate)}</td>
-                                <td className="text-center">{calculateDays(row.startDate, row.endDate)}</td>
-                                <td className="text-center">{row.interestRate.toFixed(2)}%</td>
-                                <td className="text-right">
-                                    {currencyUtils.format(row.amount, { currency: currentIsinData?.currency })}
-                                </td>
-                                <td className="text-right">
-                                    {row.paidInterest > 0
-                                        ? currencyUtils.format(row.paidInterest, { currency: currentIsinData?.currency })
-                                        : '-'
-                                    }
-                                </td>
-                                <td className="text-center">
-                                    {row.paymentDate ? dateUtils.format(row.paymentDate) : '-'}
-                                </td>
-                                <td className="text-center">{currentIsinData?.currency}</td>
+                <>
+                    <PrintTable>
+                        <thead>
+                            <tr>
+                                <th style={{ width: '5%' }}>#</th>
+                                <th style={{ width: '50%' }}>Item &amp; Description</th>
+                                <th style={{ width: '10%' }}>Qty</th>
+                                <th style={{ width: '15%' }}>Rate</th>
+                                <th style={{ width: '20%' }}>Amount</th>
                             </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colSpan={4} className="text-right">Total Accrued:</td>
-                            <td className="text-right">
-                                {currencyUtils.format(totalAccrued, { currency: currentIsinData?.currency })}
-                            </td>
-                            <td className="text-right">
-                                {currencyUtils.format(totalPaidInterest, { currency: currentIsinData?.currency })}
-                            </td>
-                            <td colSpan={2}></td>
-                        </tr>
-                        <tr className="highlighted-row">
-                            <td colSpan={5} className="text-right">Outstanding Interest Payment:</td>
-                            <td className="text-right">
-                                {currencyUtils.format(outstandingInterest, { currency: currentIsinData?.currency })}
-                            </td>
-                            <td colSpan={2}></td>
-                        </tr>
-                    </tfoot>
-                </PrintTable>
+                        </thead>
+                        <tbody>
+                            {paymentData.map((row, index) => (
+                                <tr key={row.id}>
+                                    <td className="text-center">{index + 1}</td>
+                                    <td>
+                                        Interest Payment ({currentIsinData?.isinNumber || isinCode || 'N/A'})
+                                        <br />
+                                        <span style={{ fontSize: '10px', color: '#666' }}>
+                                            {dateUtils.format(row.startDate)} - {dateUtils.format(row.endDate)}
+                                        </span>
+                                    </td>
+                                    <td className="text-center">{calculateDays(row.startDate, row.endDate)}</td>
+                                    <td className="text-center">{row.interestRate.toFixed(2)}%</td>
+                                    <td className="text-right">
+                                        {currencyUtils.format(row.amount, { currency: currentIsinData?.currency })}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colSpan={4} className="text-right">SubTotal:</td>
+                                <td className="text-right">
+                                    {currencyUtils.format(totalAccrued, { currency: currentIsinData?.currency })}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colSpan={4} className="text-right">*VAT out of scope (0%):</td>
+                                <td className="text-right">
+                                    {currencyUtils.format(0, { currency: currentIsinData?.currency })}
+                                </td>
+                            </tr>
+                            <tr className="highlighted-row">
+                                <td colSpan={4} className="text-right" style={{ fontWeight: 'bold' }}>
+                                    Total {currentIsinData?.currency}:
+                                </td>
+                                <td className="text-right" style={{ fontWeight: 'bold' }}>
+                                    {currencyUtils.format(totalAccrued, { currency: currentIsinData?.currency })}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </PrintTable>
+                    <div style={{ marginBottom: '10px', marginTop: '5px', fontSize: '9px' }}>
+                        *According to §44 Abs. 1, d) Luxembourgish VAT regulation there is no obligation to expel VAT.
+                    </div>
+                </>
             )}
 
             {renderBankDetails()}
@@ -257,10 +218,11 @@ const InvoicePrint: React.FC<InvoicePrintProps> = ({
                 showDisclaimer={false}
                 showSignature={true}
                 showContactInfo={true}
+                spvData={spvData}
             />
 
             <PrintStyles />
-        </PrintContainer>
+        </PrintContainer >
     );
 };
 

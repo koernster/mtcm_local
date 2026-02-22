@@ -30,20 +30,24 @@ interface AddressModalProps {
     initialData: AddressData;
     onUpdate?: (data: AddressData) => void;
     disabled?: boolean;
+    isUnderlyingCompany?: boolean;
 }
 
-const AddressModal: React.FC<AddressModalProps> = ({ 
+const AddressModal: React.FC<AddressModalProps> = ({
     show,
     onHide,
     companyId,
     companyName,
     initialData,
     onUpdate,
-    disabled = false
+    disabled = false,
+    isUnderlyingCompany = false
 }) => {
     const { theme } = useTheme();
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState<AddressData>(initialData);
+
+    const modalTitle = isUnderlyingCompany ? 'Underlying Client Profile' : 'Client Profile';
 
     const handleFieldChange = (field: string, value: any) => {
         if (field === 'clienttype') {
@@ -65,24 +69,24 @@ const AddressModal: React.FC<AddressModalProps> = ({
             const companyService = CompanyService.getInstance();
             await companyService.updateCompany(companyId, formData);
             onUpdate?.(formData);
-            
+
             // Show success toast
             showToast({
                 type: 'success',
                 title: 'Success',
-                message: `Client Profile for ${companyName} has been updated successfully.`,
+                message: `${modalTitle} for ${companyName} has been updated successfully.`,
                 duration: 3000,
                 position: 'top'
             });
-            
+
             // Close the modal
             onHide();
         } catch (error) {
-            console.error('Failed to update Client Profile:', error);
+            console.error(`Failed to update ${modalTitle}:`, error);
             showToast({
                 type: 'error',
                 title: 'Error',
-                message: 'Failed to update Client Profile. Please try again.',
+                message: `Failed to update ${modalTitle}. Please try again.`,
                 duration: 3000,
                 position: 'top'
             });
@@ -101,17 +105,17 @@ const AddressModal: React.FC<AddressModalProps> = ({
     );
 
     return (
-        <StyledModal 
-            show={show} 
-            onHide={onHide} 
-            size="lg" 
+        <StyledModal
+            show={show}
+            onHide={onHide}
+            size="lg"
             centered
             backdrop="static"
         >
             <StyledModalHeader closeButton>
                 <h5 className="modal-title">
                     <FaBuilding style={{ marginRight: '8px' }} />
-                    Client Profile
+                    {modalTitle}
                 </h5>
             </StyledModalHeader>
 
@@ -120,7 +124,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
                     <Col>
                         {/* Client Type Section */}
                         <Row className="mb-3">
-                            <Col md={6}>
+                            <Col md={isUnderlyingCompany ? 12 : 6}>
                                 <Form.Label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>
                                     Client Name
                                 </Form.Label>
@@ -132,22 +136,25 @@ const AddressModal: React.FC<AddressModalProps> = ({
                                     readOnly
                                 />
                             </Col>
-                            <Col md={6} className="d-flex flex-column">
-                                <Form.Label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>
-                                    Client Type
-                                </Form.Label>
-                                <PillSwitch
-                                    options={[
-                                        { value: false, label: 'Legal Entity' },
-                                        { value: true, label: 'Individual' }
-                                    ]}
-                                    value={formData.clienttype ?? false}
-                                    onChange={(value) => handleFieldChange('clienttype', value as boolean)}
-                                    name="clienttype-modal"
-                                    disabled={disabled}
-                                    size="sm"
-                                />
-                            </Col>
+                            {!isUnderlyingCompany ?
+                                (
+                                    <Col md={6} className="d-flex flex-column">
+                                        <Form.Label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>
+                                            Client Type
+                                        </Form.Label>
+                                        <PillSwitch
+                                            options={[
+                                                { value: false, label: 'Legal Entity' },
+                                                { value: true, label: 'Individual' }
+                                            ]}
+                                            value={formData.clienttype ?? false}
+                                            onChange={(value) => handleFieldChange('clienttype', value as boolean)}
+                                            name="clienttype-modal"
+                                            disabled={disabled}
+                                            size="sm"
+                                        />
+                                    </Col>
+                                ) : null}
                         </Row>
 
                         {renderSeparator()}
@@ -160,7 +167,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
                                     <Form.Label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>
                                         Address Information
                                     </Form.Label>
-                                    
+
                                     <Form.Group className="mb-2">
                                         <Form.Label style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
                                             Address Line 1

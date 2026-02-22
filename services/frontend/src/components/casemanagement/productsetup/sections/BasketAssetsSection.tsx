@@ -27,9 +27,10 @@ const BasketAssetsSection: React.FC<CustomSectionProps> = ({ formContext }) => {
     const activeCaseId = useSelector((state: RootState) => state.caseSetup.activeCaseId);
 
     // Get basket assets from case data
+    // Include activeCaseId in dependencies to re-render when case changes
     const basketAssets = useMemo(() => {
         return caseData?.case_assetbaskets || [];
-    }, [caseData?.case_assetbaskets]);
+    }, [caseData?.case_assetbaskets, activeCaseId]);
 
     // Check if investment type is Basket
     const investmentTypeName = useMemo(() => {

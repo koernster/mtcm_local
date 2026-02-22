@@ -3,6 +3,7 @@ import { gql } from '@apollo/client';
 export const UPDATE_SPV = gql`
   mutation UpdateSpv(
     $id: uuid!
+    $companyid: String
     $spvtitle: String
     $spvdescription: String
     $logo: bytea
@@ -10,12 +11,14 @@ export const UPDATE_SPV = gql`
     update_spvs_by_pk(
       pk_columns: { id: $id }
       _set: {
+        companyid: $companyid
         spvtitle: $spvtitle
         spvdescription: $spvdescription
         logo: $logo
       }
     ) {
       id
+      companyid
       spvtitle
       spvdescription
       logo
@@ -32,12 +35,12 @@ export const UPDATE_SPV = gql`
       }
       paymentdetail {
         id
-        accountname
-        beneficiarybank
-        correspondent_aba
-        correspondent_swift
-        correspondentbank
         iban
+        bankname
+        address
+        beneficiary
+        bicintermediary
+        swift
       }
     }
   }
@@ -102,12 +105,12 @@ export const UPDATE_SPV_WITH_PAYMENT = gql`
     $spvtitle: String
     $spvdescription: String
     $paymentDetailId: uuid!
-    $accountname: String
-    $beneficiarybank: String
-    $correspondent_aba: String
-    $correspondent_swift: String
-    $correspondentbank: String
     $iban: String
+    $bankname: String
+    $address: String
+    $beneficiary: String
+    $bicintermediary: String
+    $swift: String
   ) {
     update_spvs_by_pk(
       pk_columns: { id: $id }
@@ -124,21 +127,21 @@ export const UPDATE_SPV_WITH_PAYMENT = gql`
     update_paymentdetails_by_pk(
       pk_columns: { id: $paymentDetailId }
       _set: {
-        accountname: $accountname
-        beneficiarybank: $beneficiarybank
-        correspondent_aba: $correspondent_aba
-        correspondent_swift: $correspondent_swift
-        correspondentbank: $correspondentbank
         iban: $iban
+        bankname: $bankname
+        address: $address
+        beneficiary: $beneficiary
+        bicintermediary: $bicintermediary
+        swift: $swift
       }
     ) {
       id
-      accountname
-      beneficiarybank
-      correspondent_aba
-      correspondent_swift
-      correspondentbank
       iban
+      bankname
+      address
+      beneficiary
+      bicintermediary
+      swift
     }
   }
 `;
@@ -158,12 +161,12 @@ export const UPDATE_SPV_FULL = gql`
     $phone: String
     $website: String
     $paymentDetailId: uuid!
-    $accountname: String
-    $beneficiarybank: String
-    $correspondent_aba: String
-    $correspondent_swift: String
-    $correspondentbank: String
     $iban: String
+    $bankname: String
+    $address: String
+    $beneficiary: String
+    $bicintermediary: String
+    $swift: String
   ) {
     update_spvs_by_pk(
       pk_columns: { id: $id }
@@ -196,12 +199,12 @@ export const UPDATE_SPV_FULL = gql`
     update_paymentdetails_by_pk(
       pk_columns: { id: $paymentDetailId }
       _set: {
-        accountname: $accountname
-        beneficiarybank: $beneficiarybank
-        correspondent_aba: $correspondent_aba
-        correspondent_swift: $correspondent_swift
-        correspondentbank: $correspondentbank
         iban: $iban
+        bankname: $bankname
+        address: $address
+        beneficiary: $beneficiary
+        bicintermediary: $bicintermediary
+        swift: $swift
       }
     ) {
       id
@@ -248,26 +251,26 @@ export const UPSERT_ADDRESS = gql`
 export const UPSERT_PAYMENT_DETAIL = gql`
   mutation UpsertPaymentDetail(
     $id: uuid!
-    $accountname: String
-    $beneficiarybank: String
-    $correspondent_aba: String
-    $correspondent_swift: String
-    $correspondentbank: String
     $iban: String
+    $bankname: String
+    $address: String
+    $beneficiary: String
+    $bicintermediary: String
+    $swift: String
   ) {
     insert_paymentdetails_one(
       object: {
         id: $id
-        accountname: $accountname
-        beneficiarybank: $beneficiarybank
-        correspondent_aba: $correspondent_aba
-        correspondent_swift: $correspondent_swift
-        correspondentbank: $correspondentbank
         iban: $iban
+        bankname: $bankname
+        address: $address
+        beneficiary: $beneficiary
+        bicintermediary: $bicintermediary
+        swift: $swift
       }
       on_conflict: {
         constraint: paymentdetails_pkey
-        update_columns: [accountname, beneficiarybank, correspondent_aba, correspondent_swift, correspondentbank, iban]
+        update_columns: [iban, bankname, address, beneficiary, bicintermediary, swift]
       }
     ) {
       id

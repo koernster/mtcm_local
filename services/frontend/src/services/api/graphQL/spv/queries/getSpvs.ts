@@ -4,6 +4,7 @@ export const GET_SPVS = gql`
   query GetSpvs {
     spvs {
       id
+      companyid
       spvdescription
       spvtitle
       logo
@@ -19,12 +20,13 @@ export const GET_SPVS = gql`
         website
       }
       paymentdetail {
-        accountname
-        beneficiarybank
-        correspondent_aba
-        correspondent_swift
-        correspondentbank
+        id
         iban
+        bankname
+        address
+        beneficiary
+        bicintermediary
+        swift
       }
     }
   }

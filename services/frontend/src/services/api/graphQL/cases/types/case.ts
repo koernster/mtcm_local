@@ -4,17 +4,29 @@ export interface Case {
     spvid: string;
     spv: {
         id: string;
+        companyid?: string;
         spvdescription: string;
         spvtitle: string;
+        logo?: string;
         address: {
-          addressline1: string;
-          addressline2: string;
-          city: string;
-          country: string;
-          postalcode: string;
-          email: string;
-          phone: string;
-          website: string;
+            id?: string;
+            addressline1: string;
+            addressline2: string;
+            city: string;
+            country: string;
+            postalcode: string;
+            email: string;
+            phone: string;
+            website: string;
+        }
+        paymentdetail?: {
+            id?: string;
+            iban: string;
+            bankname: string;
+            address: string;
+            beneficiary: string;
+            bicintermediary: string;
+            swift: string;
         }
     };
     compartmentname: string;
@@ -32,6 +44,22 @@ export interface Case {
         companyname: string;
         hbid: string;
         clienttype?: boolean;
+        addressByAddressid?: {
+            addressline1?: string;
+            addressline2?: string;
+            city?: string;
+            state_or_province?: string;
+            country?: string;
+            postalcode?: string;
+            phone?: string;
+            email?: string;
+            website?: string;
+        };
+    };
+    underlyingcompanyid?: string;
+    companyByUnderlyingcompanyid?: {
+        id: string;
+        companyname: string;
         addressByAddressid?: {
             addressline1?: string;
             addressline2?: string;
@@ -82,7 +110,7 @@ export interface Case {
     subscriptiondate: string;
     mintradeamt: number;
     mintradelot: string;
-    
+
     // Key Dates
     coponpaymentscheduleid: string;
     coponpaymentschedule: {
@@ -91,23 +119,23 @@ export interface Case {
     };
     earlyredemptiondate: string;
     coponpaymentdate: string;
-    
+
     // Parties
     agenttypeid: string;
     payagenttype: {
         id: string;
         typename: string;
-    };    
+    };
     custodian: string;
     custodianByCustodian: {
         id: string;
         custodian: string;
     };
-    
+
     // Product Setup Status
     productsetupstatusid?: number;
     compartmentstatusid: number;
-    
+
     // New related tables
     casefee?: CaseFee;
     casecost?: CaseCost;
@@ -116,6 +144,9 @@ export interface Case {
 
     broker?: string;
     trustee?: string;
+
+    performance?: number;
+    performancetype?: number;
 }
 
 export interface CaseFee {

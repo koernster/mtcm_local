@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { Row, Col } from 'react-bootstrap';
 import { KanbanContainer, StyledCardHeader, StyledCardBody } from '../styled/CommonStyled';
 import DynamicField from './DynamicField';
@@ -55,8 +55,9 @@ const evaluateCondition = (
  * - A custom component (type: 'custom')
  * 
  * Supports conditional visibility via showWhen property.
+ * Memoized to prevent unnecessary re-renders when other sections change.
  */
-export const DynamicSection: React.FC<DynamicSectionProps> = ({
+const DynamicSectionInner: React.FC<DynamicSectionProps> = ({
     section,
     formContext,
     optionsRegistry,
@@ -125,4 +126,71 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     return <Row className="mb-4">{fieldContent.props.children}</Row>;
 };
 
+// Memoize the component to prevent unnecessary re-renders
+// Only re-render if section config or optionsRegistry changes
+export const DynamicSection = memo(DynamicSectionInner, (prevProps, nextProps) => {
+    // Re-render if section config changed
+    if (prevProps.section !== nextProps.section) {
+        return false;
+    }
+    // Re-render if optionsRegistry changed
+    if (prevProps.optionsRegistry !== nextProps.optionsRegistry) {
+        return false;
+    }
+    // Re-render if disabled state changed
+    if (prevProps.formContext.disabled !== nextProps.formContext.disabled) {
+        return false;
+    }
+
+    // For custom sections, always re-render when caseData changes
+    // because custom components may depend on any part of caseData
+    if (prevProps.section.type === 'custom') {
+        if (prevProps.formContext.caseData !== nextProps.formContext.caseData) {
+            return false;
+        }
+        // No changes detected for custom section
+        return true;
+    }
+
+    // For regular field sections, check if any field values changed
+    const sectionFields = prevProps.section.fields || [];
+    for (const field of sectionFields) {
+        const prevValue = prevProps.formContext.getValue(field.key);
+        const nextValue = nextProps.formContext.getValue(field.key);
+        if (prevValue !== nextValue) {
+            return false;
+        }
+        // Check loading/error states
+        if (prevProps.formContext.isLoading(field.key) !== nextProps.formContext.isLoading(field.key)) {
+            return false;
+        }
+        if (prevProps.formContext.getError(field.key) !== nextProps.formContext.getError(field.key)) {
+            return false;
+        }
+    }
+    // Check showWhen condition if present
+    if (prevProps.section.showWhen && nextProps.section.showWhen) {
+        const prevParts = prevProps.section.showWhen.field.split('.');
+        const nextParts = nextProps.section.showWhen.field.split('.');
+        let prevValue: unknown = prevProps.formContext.caseData;
+        let nextValue: unknown = nextProps.formContext.caseData;
+        for (const part of prevParts) {
+            prevValue = prevValue && typeof prevValue === 'object'
+                ? (prevValue as Record<string, unknown>)[part]
+                : undefined;
+        }
+        for (const part of nextParts) {
+            nextValue = nextValue && typeof nextValue === 'object'
+                ? (nextValue as Record<string, unknown>)[part]
+                : undefined;
+        }
+        if (prevValue !== nextValue) {
+            return false;
+        }
+    }
+    // No changes detected, don't re-render
+    return true;
+});
+
 export default DynamicSection;
+

@@ -57,7 +57,7 @@ Two migrations were added to fill gaps between the frontend's GraphQL queries an
 ### Schema Mismatches (Frontend vs Database)
 The frontend dev branch expects database columns/functions that don't exist locally. V68 and V69 fix the two blocking ones, but **more gaps likely exist** in less-tested flows:
 
-- **`trades_history_by_days`** — DB function exists but is not tracked as a Hasura query root field. Affects: Coupon Payment loan balance overview.
+- **`trades_history_by_days`** — ~~DB function exists but is not tracked~~ **FIXED** — now tracked in Hasura metadata.
 - Other queries (trades, events, notifications, coupon interest) have not been fully tested against the local schema.
 
 **Recommendation:** Systematically test each page/flow and add missing columns or Hasura tracking as needed. The pattern is always the same: intercept the GraphQL response body (HTTP 200 with `errors` array), add the missing column via `ALTER TABLE`, then `reload_metadata` in Hasura.
@@ -69,12 +69,11 @@ The local Hasura metadata was exported from the dev environment and applied via 
 - No role-based permissions are configured (everything uses admin-secret)
 
 ### Uncommitted Changes
-There are **45 modified/untracked files** that need to be committed:
-- Auth bypass (`AuthContext.tsx`, `client/index.ts`)
-- HTTP mode (`docker-compose.yml`, `package.json`)
-- Schema migrations (`V68`, `V69`)
-- Frontend bug fixes from dev branch (BasicProductInfo imports, etc.)
-- CSV provider for HubSpot contacts
+~~There were 45 modified/untracked files.~~ **ALL COMMITTED** in two commits:
+1. `c105871` — Local dev infrastructure (auth bypass, HTTP mode, migrations, Hasura functions)
+2. `06b98bd` — Frontend dev branch sync (GraphQL schemas, UI components)
+
+Branch is **2 commits ahead of origin/main** — push when ready.
 
 ### Frontend Dev Branch Delta
 The `services/frontend/` code comes from the `dev` branch of `koernster/Frontend`. Many files were already modified compared to the original monorepo commit — these are **not our changes** but represent features/fixes that existed in the dev branch. The `git diff` mixes our local-dev patches with these pre-existing changes.

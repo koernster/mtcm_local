@@ -7,6 +7,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { FaUpload, FaImage, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
+import {
+    getImageSrc,
+    extractBase64FromDataUrl
+} from '../../utils/imageUtils';
 
 interface ImageUploaderProps {
     /** Current image URL or base64 string */
@@ -135,69 +139,6 @@ const HiddenInput = styled.input`
     display: none;
 `;
 
-// Helper function to extract pure base64 from data URL
-const extractBase64 = (dataUrl: string): string => {
-    const base64Prefix = 'base64,';
-    const index = dataUrl.indexOf(base64Prefix);
-    if (index !== -1) {
-        return dataUrl.substring(index + base64Prefix.length);
-    }
-    return dataUrl;
-};
-
-// Helper function to convert hex string to base64
-const hexToBase64 = (hexString: string): string => {
-    // Remove \x prefix if present
-    const cleanHex = hexString.startsWith('\\x') ? hexString.slice(2) : hexString;
-
-    try {
-        const bytes = new Uint8Array(
-            cleanHex.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
-        );
-        let binary = '';
-        bytes.forEach(b => binary += String.fromCharCode(b));
-        return btoa(binary);
-    } catch {
-        return '';
-    }
-};
-
-// Check if a string is valid base64
-const isValidBase64 = (str: string): boolean => {
-    if (!str || str.length === 0) return false;
-    // Base64 pattern: alphanumeric, +, /, and = for padding
-    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-    return base64Regex.test(str) && str.length % 4 === 0;
-};
-
-// Helper function to create a displayable image source
-// Handles data URLs, pure base64, and hex-encoded bytea strings
-const getImageSrc = (value: string): string => {
-    if (!value) return '';
-
-    // Already a data URL
-    if (value.startsWith('data:')) {
-        return value;
-    }
-
-    // Hex-encoded bytea from PostgreSQL (starts with \x)
-    if (value.startsWith('\\x')) {
-        const base64 = hexToBase64(value);
-        if (base64) {
-            return `data:image/png;base64,${base64}`;
-        }
-        return '';
-    }
-
-    // Try as pure base64
-    if (isValidBase64(value)) {
-        return `data:image/png;base64,${value}`;
-    }
-
-    // Fallback: try anyway
-    return `data:image/png;base64,${value}`;
-};
-
 const ImageUploader: React.FC<ImageUploaderProps> = ({
     value,
     onChange,
@@ -314,7 +255,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         }
 
         // Extract pure base64 from data URL and pass to onChange
-        const pureBase64 = extractBase64(result.dataUrl);
+        const pureBase64 = extractBase64FromDataUrl(result.dataUrl);
         onChange(pureBase64);
     }, [validateImage, onChange]);
 

@@ -1,8 +1,7 @@
-import React, { useMemo, useCallback, useState } from 'react';
-import { Form, Container, Row, Col, FormGroup, FormLabel, InputGroup, Button } from 'react-bootstrap';
-import {  FaPlus, FaTrash, FaPen } from 'react-icons/fa6';
-import { FaPercentage, FaMoneyBillAlt, FaBuilding } from 'react-icons/fa';
-import StyledFormText, { StyledButton, StyledFormControl, StyledSelect, KanbanContainer, StyledCardHeader, StyledCardBody } from '../../styled/CommonStyled';
+import React, { useCallback, useState } from 'react';
+import { Form, Container, Row, Col, FormGroup, FormLabel, InputGroup } from 'react-bootstrap';
+import { FaBuilding } from 'react-icons/fa';
+import StyledFormText, { StyledButton, StyledFormControl, StyledSelect } from '../../styled/CommonStyled';
 import { useProductSetupData } from '../../../hooks/useProductSetupData';
 import { Autocomplete } from '../../common/Autocomplete';
 import { searchContacts } from '../../../services/api/hubspot';
@@ -12,20 +11,18 @@ import { updateCaseData } from '../../../store/slices/caseSetupSlice';
 import type { HubSpotContact } from '../../../services/api/hubspot/types';
 import { useCompanyAndCaseManager } from '../../../hooks/useCompanyAndCaseManager';
 import CompanyService from '../../../services/api/graphQL/company/service';
+import CaseService from '../../../services/api/graphQL/cases/service';
+import type { Company } from '../../../services/api/graphQL/company/types';
 import InputWrapper from '../../common/InputWrapper';
-import PercentageInput from '../../common/PercentageInput';
-import FormattedCurrencyInput from '../../common/FormattedCurrencyInput';
-import PillSwitch from '../../common/PillSwitch';
 import AddressModal from '../../common/AddressModal';
 import { renderWarningMessage, getFieldErrorStyle } from '../../common/FormValidation';
 import { useSaveOnBlur } from '../../../hooks/useSaveOnBlur';
-import CaseService from '../../../services/api/graphQL/cases/service';
 import { useCaseStatus } from '../../../hooks/useCaseStatus';
 import { useAuth } from '../../../context/AuthContext';
 import { useProductProfile } from '../../../hooks/useProductProfile';
 import { useFormContext } from '../../../hooks/useFormContext';
-import SkeletonLoading from '../../common/SkeletonLoader';
-import { DynamicFormRenderer } from '../../dynamicForm';
+import { DynamicFormRenderer } from '../../dynamicForm/DynamicFormRenderer';
+import SkeletonLoader from '../../common/SkeletonLoader';
 
 const BasicProductInfo: React.FC = () => {
     const dispatch = useDispatch();
@@ -33,6 +30,7 @@ const BasicProductInfo: React.FC = () => {
     const [loadingStates, setLoadingStates] = React.useState<Record<string, boolean>>({});
     const [errorStates, setErrorStates] = React.useState<Record<string, string>>({});
     const [showAddressModal, setShowAddressModal] = useState(false);
+    const [showUnderlyingClientModal, setShowUnderlyingClientModal] = useState(false);
     const caseData = useSelector((state: RootState) => state.caseSetup.caseData);
     const activeCaseId = useSelector((state: RootState) => state.caseSetup.activeCaseId);
     const { isCaseFreezed } = useCaseStatus();
@@ -86,7 +84,7 @@ const BasicProductInfo: React.FC = () => {
             setFieldError('client', null);
             try {
                 const company = await saveClientAndUpdateCase(contact, activeCaseId);
-                dispatch(updateCaseData({ 
+                dispatch(updateCaseData({
                     company: company
                 }));
             } catch (error) {
@@ -121,7 +119,9 @@ const BasicProductInfo: React.FC = () => {
             setFieldLoading('underlyingClient', true);
             setFieldError('underlyingClient', null);
             try {
-                const newCompany = await CompanyService.getInstance().createUnderlyingClientCompany(companyName);
+                // Create underlying client with fake HBID (FK_{timestamp})
+                const fakeHbid = `FK_${Date.now()}`;
+                const newCompany = await CompanyService.getInstance().createCompany(fakeHbid, companyName);
                 await CaseService.getInstance().updateCase(activeCaseId, {
                     underlyingcompanyid: newCompany.id
                 });
@@ -159,7 +159,7 @@ const BasicProductInfo: React.FC = () => {
                         <FormGroup controlId="client">
                             <FormLabel className="d-flex align-items-center gap-2">
                                 Client Details
-                            </FormLabel>                            
+                            </FormLabel>
                             <InputGroup className="w-100">
                                 <div style={{ flex: 1 }}>
                                     <Autocomplete<HubSpotContact>
@@ -191,7 +191,7 @@ const BasicProductInfo: React.FC = () => {
                                     />
                                 </div>
                                 {caseData?.company?.id && (
-                                    <InputGroup.Text 
+                                    <InputGroup.Text
                                         as={StyledButton}
                                         type="button"
                                         variant="primary"
@@ -200,16 +200,6 @@ const BasicProductInfo: React.FC = () => {
                                         <FaBuilding /> Profile
                                     </InputGroup.Text>
                                 )}
-                                {/* {caseData?.company?.hbid && (
-                                    <InputGroup.Text 
-                                        as={StyledButton}
-                                        type="button"
-                                        variant="primary"
-                                        onClick={() => setShowAddressModal(true)}
-                                    >
-                                        <FaBuilding />&nbsp; Profile
-                                    </InputGroup.Text>
-                                )} */}
                             </InputGroup>
                             <StyledFormText>Search by name or email to automatically link a HubSpot contact.</StyledFormText>
                         </FormGroup>
@@ -217,6 +207,62 @@ const BasicProductInfo: React.FC = () => {
                 </Row>
 
                 {/* Underlying Client Section */}
+                <Row className="mb-4">
+                    <Col sm={12}>
+                        <FormGroup controlId="underlyingClient">
+                            <FormLabel>Underlying Client</FormLabel>
+                            <InputGroup className="w-100">
+                                <div style={{ flex: 1 }}>
+                                    <InputWrapper
+                                        isLoading={loadingStates['underlyingClient']}
+                                        rightIcon={renderWarningMessage(errorStates['underlyingClient'])}
+                                    >
+                                        <Autocomplete<Company>
+                                            value={caseData?.companyByUnderlyingcompanyid?.companyname || ''}
+                                            onChange={() => { }}
+                                            onSelect={handleUnderlyingClientSelect}
+                                            onSearch={async (query) => {
+                                                setFieldError('underlyingClient', null);
+                                                return await CompanyService.getInstance().searchCompanies(query, true);
+                                            }}
+                                            onCreateNew={handleCreateUnderlyingClient}
+                                            getOptionLabel={(company: Company) => company.companyname}
+                                            placeholder={"Search or create underlying client..."}
+                                            minLength={2}
+                                            debounceMs={300}
+                                            loading={loadingStates['underlyingClient']}
+                                            disabled={loadingStates['underlyingClient'] || isCaseFreezed}
+                                            error={!!errorStates['underlyingClient']}
+                                            errorMessage={errorStates['underlyingClient']}
+                                            textElementStyle={
+                                                caseData?.companyByUnderlyingcompanyid?.id
+                                                    ? {
+                                                        flex: 1,
+                                                        borderTopRightRadius: 0,
+                                                        borderBottomRightRadius: 0
+                                                    }
+                                                    : { flex: 1 }
+                                            }
+                                        />
+                                    </InputWrapper>
+                                </div>
+                                {caseData?.companyByUnderlyingcompanyid?.id && (
+                                    <InputGroup.Text
+                                        as={StyledButton}
+                                        type="button"
+                                        variant="primary"
+                                        onClick={() => setShowUnderlyingClientModal(true)}
+                                    >
+                                        <FaBuilding /> Profile
+                                    </InputGroup.Text>
+                                )}
+                            </InputGroup>
+                            <StyledFormText>Search for an existing underlying client or type to create a new one.</StyledFormText>
+                        </FormGroup>
+                    </Col>
+                </Row>
+
+                {/* SPV and Compartment Section */}
                 <Row className="mb-4">
                     <Col sm={4}>
                         <FormGroup controlId="spv">
@@ -308,7 +354,7 @@ const BasicProductInfo: React.FC = () => {
                 {profileLoading && productTypeId && (
                     <Row className="mb-4">
                         <Col sm={12}>
-                            <SkeletonLoading rows={4} height={[60, 60, 60, 60]} />
+                            <SkeletonLoader rows={4} height={[60, 60, 60, 60]} />
                         </Col>
                     </Row>
                 )}
@@ -353,6 +399,29 @@ const BasicProductInfo: React.FC = () => {
                         }));
                     }}
                     disabled={isCaseFreezed}
+                />
+            )}
+
+            {/* Underlying Client Address Modal */}
+            {caseData?.companyByUnderlyingcompanyid?.id && (
+                <AddressModal
+                    show={showUnderlyingClientModal}
+                    onHide={() => setShowUnderlyingClientModal(false)}
+                    companyId={caseData.companyByUnderlyingcompanyid.id}
+                    companyName={caseData.companyByUnderlyingcompanyid.companyname}
+                    initialData={{
+                        addressByAddressid: caseData.companyByUnderlyingcompanyid.addressByAddressid
+                    }}
+                    onUpdate={(updatedData) => {
+                        dispatch(updateCaseData({
+                            companyByUnderlyingcompanyid: {
+                                ...caseData.companyByUnderlyingcompanyid,
+                                ...updatedData
+                            }
+                        }));
+                    }}
+                    disabled={isCaseFreezed}
+                    isUnderlyingCompany={true}
                 />
             )}
         </Container>

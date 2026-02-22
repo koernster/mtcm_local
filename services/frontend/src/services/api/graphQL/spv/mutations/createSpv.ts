@@ -3,6 +3,7 @@ import { gql } from '@apollo/client';
 export const INSERT_SPV = gql`
   mutation InsertSpv(
     $id: uuid!
+    $companyid: String
     $spvtitle: String!
     $spvdescription: String
     $logo: bytea
@@ -30,6 +31,7 @@ export const INSERT_SPV = gql`
     # Insert SPV with reference to address and payment detail
     insert_spvs_one(object: {
       id: $id
+      companyid: $companyid
       spvtitle: $spvtitle
       spvdescription: $spvdescription
       logo: $logo
@@ -37,6 +39,7 @@ export const INSERT_SPV = gql`
       paymentdetailid: $paymentDetailId
     }) {
       id
+      companyid
       spvtitle
       spvdescription
       logo
@@ -53,12 +56,12 @@ export const INSERT_SPV = gql`
       }
       paymentdetail {
         id
-        accountname
-        beneficiarybank
-        correspondent_aba
-        correspondent_swift
-        correspondentbank
         iban
+        bankname
+        address
+        beneficiary
+        bicintermediary
+        swift
       }
     }
   }

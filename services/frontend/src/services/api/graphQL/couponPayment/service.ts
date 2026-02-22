@@ -5,7 +5,7 @@ import { InterestCouponPayment } from "./types/couponpayment";
 class CouponPaymentService {
     private static instance: CouponPaymentService;
 
-    private constructor() {}
+    private constructor() { }
 
     public static getInstance(): CouponPaymentService {
         if (!CouponPaymentService.instance) {
@@ -25,9 +25,9 @@ class CouponPaymentService {
             fetchPolicy: 'network-only'
         });
 
-        if(!data || !data.cases || data.cases.length === 0 || data.cases[0].caseisins.length === 0){
+        if (!data || !data.cases || data.cases.length === 0 || data.cases[0].caseisins.length === 0) {
             return [];
-        } else{
+        } else {
             const spvData = data.cases[0].spv;
             const company = data.cases[0].company;
             const compartmentName = data.cases[0].compartmentname;
@@ -35,14 +35,14 @@ class CouponPaymentService {
             const maturityDate = data.cases[0].maturitydate;
             const issuePrice = data.cases[0].issueprice;
             const couponFrequency = data.cases[0].coponfrequency?.frequency || '';
-            for(const isin of data.cases[0].caseisins){
+            for (const isin of data.cases[0].caseisins) {
                 //get loan balance overview here.
                 const { data } = await client.query<any, any>({
-                            query: GET_LOAN_BALANCE_OVERVIEW_BY_ISIN,
-                            variables: { p_isinid: isin.id },
-                            fetchPolicy: 'network-only'
-                        });
-                
+                    query: GET_LOAN_BALANCE_OVERVIEW_BY_ISIN,
+                    variables: { p_isinid: isin.id },
+                    fetchPolicy: 'network-only'
+                });
+
                 //push payment overview and loan balance overview
                 const paymentOverview = isin.couponpayments.map((payment: any) => ({
                     id: payment.id,
