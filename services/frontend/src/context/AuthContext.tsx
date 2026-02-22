@@ -5,6 +5,17 @@ import { setTokenGetter } from '../services/api/graphQL/client';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { getKeycloakConfig } from '../lib/config';
 
+// ─── Local Dev Mode ─────────────────────────────────────────────────────────
+// When Keycloak is unreachable (local Docker without Keycloak), we fall back
+// to a mock identity so the app renders with full SuperAdmin access.
+const LOCAL_DEV_GROUPS = ['Operations', 'SuperAdmin', 'operations', 'default-roles-mtcm-test', 'admin', 'user'];
+const LOCAL_DEV_USER = {
+  name: 'Local Developer',
+  email: 'dev@localhost',
+  sub: 'local-dev-user-id',
+  groups: LOCAL_DEV_GROUPS,
+};
+
 interface AuthContextProps {
   keycloak?: KeycloakInstance;
   isAuthenticated: boolean;
@@ -15,103 +26,93 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-// ─── Check if auth bypass is enabled (local dev without Keycloak) ───
-const AUTH_BYPASS = process.env.REACT_APP_AUTH_BYPASS === 'true';
-
-// ─── Mock Auth Provider (local dev) ─────────────────────────────────
-const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  useEffect(() => {
-    // Set a static token getter for Apollo client
-    setTokenGetter(() => 'local-dev-token');
-    console.log('[Auth] Running in LOCAL DEV mode — Keycloak bypassed');
-  }, []);
-
-  // Create a mock keycloak-like object so components that access keycloak?.tokenParsed don't crash
-  const mockKeycloak = {
-    authenticated: true,
-    token: 'local-dev-token',
-    tokenParsed: {
-      sub: 'local-dev-user',
-      name: 'Local Developer',
-      email: 'dev@localhost',
-      groups: ['admin', 'operations'],
-      preferred_username: 'dev-user',
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    },
-    idTokenParsed: {
-      sub: 'local-dev-user',
-      name: 'Local Developer',
-      email: 'dev@localhost',
-      preferred_username: 'dev-user',
-    },
-    login: () => Promise.resolve(),
-    logout: () => { window.location.href = '/'; },
-    updateToken: () => Promise.resolve(false),
-  } as unknown as KeycloakInstance;
-
-  return (
-    <AuthContext.Provider value={{
-      keycloak: mockKeycloak,
-      isAuthenticated: true,
-      userGroups: ['admin', 'operations'],
-      login: () => {},
-      logout: () => { window.location.href = '/'; },
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-// ─── Real Auth Provider (production with Keycloak) ──────────────────
-const KeycloakAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [keycloak, setKeycloak] = useState<KeycloakInstance | undefined>(undefined);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false); // Flag to ensure initialization occurs only once
   const [userGroups, setUserGroups] = useState<any[]>([]);
+
+  // ─── Helper: activate local dev fallback (no Keycloak) ───
+  const activateLocalDevMode = (reason: string) => {
+    console.warn(`Keycloak unavailable (${reason}) — falling back to local dev mode`);
+    const mockKeycloak = {
+      authenticated: true,
+      token: 'local-dev-token',
+      tokenParsed: { ...LOCAL_DEV_USER },
+      idTokenParsed: { ...LOCAL_DEV_USER },
+      login: () => {},
+      logout: () => { window.location.reload(); },
+      updateToken: () => Promise.resolve(false),
+    } as unknown as KeycloakInstance;
+
+    setKeycloak(mockKeycloak);
+    setIsAuthenticated(true);
+    setUserGroups(LOCAL_DEV_GROUPS);
+    setIsInitialized(true);
+    setTokenGetter(() => 'local-dev-token');
+  };
 
   useEffect(() => {
     if (!isInitialized) {
       const kcConfig = getKeycloakConfig();
-      const keyCloakConfig = {
-        url: kcConfig.apiBaseUrl,
-        realm: kcConfig.realm,
-        clientId: kcConfig.clientId,
-      };
-      const keycloakInstance = new Keycloak(keyCloakConfig);
 
-      keycloakInstance
-        .init({ 
-          onLoad: 'login-required', 
-          checkLoginIframe: false, 
-          redirectUri: kcConfig.redirectUrl 
+      // ─── Pre-flight check: is Keycloak actually reachable? ───
+      // The openid-configuration endpoint is a lightweight probe.
+      const kcWellKnown = `${kcConfig.apiBaseUrl}/realms/${kcConfig.realm}/.well-known/openid-configuration`;
+      fetch(kcWellKnown, { signal: AbortSignal.timeout(3000) })
+        .then((res) => {
+          if (!res.ok || !res.headers.get('content-type')?.includes('json')) {
+            throw new Error(`Unexpected response: ${res.status}`);
+          }
+          return res.json();
         })
-        .then((authenticated) => {
-          setKeycloak(keycloakInstance);
-          setIsAuthenticated(authenticated);
-          setIsInitialized(true);
-          
-          // Set the token getter for Apollo client
-          setTokenGetter(() => keycloakInstance.token);
+        .then((json) => {
+          // Keycloak responded — proceed with real init
+          if (!json.authorization_endpoint) throw new Error('Not a Keycloak response');
+
+          const keycloakInstance = new Keycloak({
+            url: kcConfig.apiBaseUrl,
+            realm: kcConfig.realm,
+            clientId: kcConfig.clientId,
+          });
+
+          return keycloakInstance
+            .init({
+              onLoad: 'login-required',
+              checkLoginIframe: false,
+              redirectUri: kcConfig.redirectUrl,
+            })
+            .then((authenticated) => {
+              setKeycloak(keycloakInstance);
+              setIsAuthenticated(authenticated);
+              setIsInitialized(true);
+              setTokenGetter(() => keycloakInstance.token);
+            });
         })
         .catch((err) => {
-          console.error('Keycloak initialization error:', err);
+          activateLocalDevMode(err?.message || 'unreachable');
         });
     }
-  }, [isInitialized]);
+  }, [isInitialized]); // Dependency ensures this runs only when `isInitialized` is false
 
   useEffect(() => {
     if (keycloak) {
       const initKeycloak = async () => {
+        //when user is authenticated get required details and refresh token after every interval.
         if (keycloak.authenticated) {
+          //refresh token after every interval
           const kcConfig = getKeycloakConfig();
           setInterval(async () => {
             await refreshToken();
           }, kcConfig.refreshTokenInterval);
 
-          const groups = keycloak?.tokenParsed?.groups || [];
-          if (groups) {
+          //get groups of user.
+          const groups = keycloak?.tokenParsed?.groups || []; //await fetchUserGroups();
+          if (groups && groups.length > 0) {
             setUserGroups(groups);
           }
+
+          //get more details when needed.
         }
       }
 
@@ -129,9 +130,32 @@ const KeycloakAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const refreshToken = async () => {
     try {
-      await keycloak?.updateToken(30);
+      //const refreshed = 
+      await keycloak?.updateToken(30); // Refresh if token expires in less than 30 seconds
+      // if (refreshed) {
+      //   console.log('Token refreshed');
+      // } else {
+      //   console.log('Token not refreshed, valid for', Math.ceil(keycloak?.tokenParsed?.exp! - new Date().getTime() / 1000), 'seconds');
+      // }
     } catch (error) {
-      // Token refresh failed silently
+      //console.error('Failed to refresh token:', error);
+    }
+  };
+
+  const fetchUserGroups = async () => {
+    try {
+      //console.log(keycloak?.tokenParsed?.groups);
+
+      const kcConfig = getKeycloakConfig();
+      const api = createApiInstance(kcConfig.apiBaseUrl, keycloak?.token);
+
+      // Fetch user groups
+      const response = await api.get<any[]>(`/admin/realms/${kcConfig.realm}/users/${keycloak?.idTokenParsed?.sub}/groups`);
+      const apiResponse = handleResponse(response);
+
+      return apiResponse.data;
+    } catch (err) {
+      console.log('Error fetching user groups');
     }
   };
 
@@ -141,11 +165,6 @@ const KeycloakAuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     </AuthContext.Provider>
   );
 };
-
-// ─── Export the right provider based on environment ─────────────────
-export const AuthProvider: React.FC<{ children: ReactNode }> = AUTH_BYPASS
-  ? MockAuthProvider
-  : KeycloakAuthProvider;
 
 export const useAuth = (): AuthContextProps => {
   const context = useContext(AuthContext);

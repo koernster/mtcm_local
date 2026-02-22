@@ -2,7 +2,6 @@
   "name": "app",
   "version": "0.1.0",
   "private": true,
-  "proxy": "https://hs.mtcm.dev",
   "type": "module",
   "dependencies": {
     "@apollo/client": "^3.13.8",
@@ -40,6 +39,7 @@
   },
   "scripts": {
     "start": "HTTPS=true SSL_CRT_FILE=./cert.pem SSL_KEY_FILE=./key.pem react-scripts start",
+    "start:local": "react-scripts start",
     "start:production": "HTTPS=true SSL_CRT_FILE=./cert.pem SSL_KEY_FILE=./key.pem REACT_APP_ENV=production react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

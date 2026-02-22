@@ -190,9 +190,11 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+    command: ["npm", "run", "start:local"]
     volumes:
       - ./services/frontend/src:/app/src
       - ./services/frontend/public:/app/public
+      - ./services/frontend/.env:/app/.env
     networks:
       - mtcm-network
 

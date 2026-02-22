@@ -143,7 +143,6 @@ npm start
 |--------|-----------|-------|
 | Auth | Keycloak JWT | Bypassed (mock) |
 | Reverse Proxy | Caddy + Traefik | Direct port access |
-| Secrets | Doppler | `.env` file |
-| SSL | Let's Encrypt | Self-signed certs |
-| Database | Hetzner persistent | Docker volume |
+| Secrets | Self-signed certs |
+| Database | persistent | Docker volume |
 | Excel Upload | GCF functions-framework | FastAPI wrapper |

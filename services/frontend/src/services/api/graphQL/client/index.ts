@@ -3,7 +3,6 @@ import { setContext } from '@apollo/client/link/context';
 import { getApiConfig } from '../../../../lib/config';
 
 const apiConfig = getApiConfig();
-const AUTH_BYPASS = process.env.REACT_APP_AUTH_BYPASS === 'true';
 
 const httpLink = createHttpLink({
   uri: apiConfig.mtcmDbUrl
@@ -17,19 +16,18 @@ export const setTokenGetter = (tokenGetter: () => string | undefined) => {
 };
 
 const authLink = setContext((_, { headers }) => {
-  // In local dev mode, use Hasura admin secret directly
-  if (AUTH_BYPASS) {
+  const token = getToken?.();
+
+  // Local dev mode: use Hasura admin secret instead of JWT Bearer token
+  if (token === 'local-dev-token') {
     return {
       headers: {
         ...headers,
-        'x-hasura-admin-secret': 'myadminsecretkey',
-        'x-hasura-role': 'admin',
+        'x-hasura-admin-secret': process.env.REACT_APP_HASURA_ADMIN_SECRET || 'myadminsecretkey',
       },
     };
   }
 
-  // Production: use Keycloak JWT token
-  const token = getToken?.();
   return {
     headers: {
       ...headers,

@@ -1,18 +1,15 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /app
 
-# Install dependencies first (layer caching)
+# Copy package files first for layer caching
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
-# Copy source
+# Copy source (will be overridden by volume mount in dev)
 COPY . .
-
-# Use the local env file
-COPY .env.local .env.local
 
 EXPOSE 3000
 
-# Start dev server (HTTPS with self-signed certs)
+# Use webpack-dev-server for hot reload
 CMD ["npm", "start"]

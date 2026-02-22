@@ -26,8 +26,14 @@ Thumbs.db
 # Docker volumes (if local)
 pgdata/
 
-# SSL certs (keep the self-signed ones for local dev)
-# cert.pem
+# SSL certs
+services/frontend/.cert/
+
+# Temp / scratch files
+services/frontend/xxx.env.production
+
+# Old frontend (kept locally for reference)
+services/frontend_old/
 # key.pem
 
 # Logs

@@ -1,0 +1,5 @@
+- function:
+    name: trades_history_by_days
+    schema: public
+  configuration:
+    exposed_as: query
