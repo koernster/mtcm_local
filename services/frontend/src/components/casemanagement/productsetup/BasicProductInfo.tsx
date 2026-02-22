@@ -22,6 +22,10 @@ import { useSaveOnBlur } from '../../../hooks/useSaveOnBlur';
 import CaseService from '../../../services/api/graphQL/cases/service';
 import { useCaseStatus } from '../../../hooks/useCaseStatus';
 import { useAuth } from '../../../context/AuthContext';
+import { useProductProfile } from '../../../hooks/useProductProfile';
+import { useFormContext } from '../../../hooks/useFormContext';
+import SkeletonLoading from '../../common/SkeletonLoader';
+import { DynamicFormRenderer } from '../../dynamicForm';
 
 const BasicProductInfo: React.FC = () => {
     const dispatch = useDispatch();
