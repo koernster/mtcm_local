@@ -1,0 +1,7 @@
+Dockerfile
+.github/workflows/push-ghcr.yml
+.DS_Store
+.env
+__pycache__/
+*.pyc
+venv/

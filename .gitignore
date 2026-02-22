@@ -1,0 +1,38 @@
+# Environment (contains secrets)
+.env
+!.env.example
+
+# Node
+node_modules/
+build/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volumes (if local)
+pgdata/
+
+# SSL certs (keep the self-signed ones for local dev)
+# cert.pem
+# key.pem
+
+# Logs
+*.log
+
+# Test
+test-results/
+coverage/

@@ -1,0 +1,282 @@
+{
+    "tabs": [
+        {
+            "id": "basic-product-info",
+            "name": "Basic Product Info",
+            "sections": [
+                {
+                    "id": "investment-type",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "investtypeid",
+                            "position": 1,
+                            "name": "investmentType",
+                            "alias": "Investment Type",
+                            "fieldInfo": "Choose the type of investment product.",
+                            "reactComponent": "SelectInput",
+                            "options": {
+                                "source": "investmentTypes",
+                                "valueKey": "id",
+                                "labelKey": "typename"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "basket-assets",
+                    "type": "custom",
+                    "customComponent": "BasketAssetsSection",
+                    "showWhen": {
+                        "field": "investmenttype.typename",
+                        "equals": "Basket"
+                    }
+                },
+                {
+                    "id": "dates",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "issuedate",
+                            "position": 1,
+                            "name": "issueDate",
+                            "alias": "Issue Date",
+                            "fieldInfo": "The date when the product will be issued.",
+                            "reactComponent": "DateInput",
+                            "required": true
+                        },
+                        {
+                            "key": "maturitydate",
+                            "position": 2,
+                            "name": "maturityDate",
+                            "alias": "Maturity Date",
+                            "fieldInfo": "The date when the product matures.",
+                            "reactComponent": "DateInput",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "id": "coupon-details",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "coponfreqid",
+                            "position": 1,
+                            "name": "couponFrequency",
+                            "alias": "Coupon Frequency",
+                            "fieldInfo": "Choose the frequency of coupon payments.",
+                            "reactComponent": "SelectInput",
+                            "options": {
+                                "source": "couponFrequencies",
+                                "valueKey": "id",
+                                "labelKey": "frequency"
+                            }
+                        },
+                        {
+                            "key": "copontypeid",
+                            "position": 2,
+                            "name": "couponType",
+                            "alias": "Coupon Type",
+                            "fieldInfo": "Select whether the coupon type is fixed or floating.",
+                            "reactComponent": "SelectInput",
+                            "options": {
+                                "source": "couponTypes",
+                                "valueKey": "id",
+                                "labelKey": "typename"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "parties-involved",
+            "name": "Parties Involved",
+            "sections": [
+                {
+                    "id": "parties-row-1",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "agenttypeid",
+                            "position": 1,
+                            "name": "payingAgent",
+                            "alias": "Paying Agent",
+                            "fieldInfo": "Select the paying agent for the product.",
+                            "reactComponent": "SelectInput",
+                            "options": {
+                                "source": "payAgentTypes",
+                                "valueKey": "id",
+                                "labelKey": "typename"
+                            }
+                        },
+                        {
+                            "key": "broker",
+                            "position": 2,
+                            "name": "broker",
+                            "alias": "Broker",
+                            "fieldInfo": "",
+                            "reactComponent": "TextInput",
+                            "props": {
+                                "placeholder": "Enter broker name"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "parties-row-2",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "trustee",
+                            "position": 1,
+                            "name": "trustee",
+                            "alias": "Trustee",
+                            "fieldInfo": "",
+                            "reactComponent": "TextInput",
+                            "props": {
+                                "placeholder": "Enter trustee name"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "fin-structure",
+            "name": "Financial Structure",
+            "sections": [
+                {
+                    "id": "isins",
+                    "type": "custom",
+                    "customComponent": "ISINsSection"
+                },
+                {
+                    "id": "subscription-date",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "subscriptiondate",
+                            "position": 1,
+                            "name": "subscriptionDate",
+                            "alias": "Final Subscription Date",
+                            "fieldInfo": "Last date for accepting subscriptions",
+                            "reactComponent": "DateInput",
+                            "colSize": 6
+                        }
+                    ]
+                },
+                {
+                    "id": "trade-amounts",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "mintradeamt",
+                            "position": 1,
+                            "name": "minTradeAmount",
+                            "alias": "Minimum Trade Amount",
+                            "fieldInfo": "Specify trade amount. Minimum 100k of currency.",
+                            "reactComponent": "CurrencyInput",
+                            "props": {
+                                "min": 100000,
+                                "currency": "CHF",
+                                "showSymbol": true
+                            }
+                        },
+                        {
+                            "key": "mintradelot",
+                            "position": 2,
+                            "name": "minTradeLot",
+                            "alias": "Minimum Trading Lot",
+                            "fieldInfo": "Define trading lot specifications.",
+                            "reactComponent": "TextInput",
+                            "props": {
+                                "placeholder": "Enter trading lot details"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "fees-costs",
+            "name": "Fees and Costs",
+            "sections": [
+                {
+                    "id": "fees",
+                    "type": "custom",
+                    "customComponent": "FeesSection"
+                },
+                {
+                    "id": "costs",
+                    "type": "custom",
+                    "customComponent": "CostsSection"
+                },
+                {
+                    "id": "subscription-costs",
+                    "type": "custom",
+                    "customComponent": "SubscriptionCostsSection"
+                }
+            ]
+        },
+        {
+            "id": "key-dates",
+            "name": "Key Dates & Schedules",
+            "sections": [
+                {
+                    "id": "coupon-schedule",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "coponpaymentscheduleid",
+                            "position": 1,
+                            "name": "couponPaymentSchedule",
+                            "alias": "Coupon Payment Schedule",
+                            "fieldInfo": "Define how often coupon payments will be made.",
+                            "reactComponent": "SelectInput",
+                            "options": {
+                                "source": "scheduleTypes",
+                                "valueKey": "id",
+                                "labelKey": "typename"
+                            }
+                        },
+                        {
+                            "key": "coponpaymentdate",
+                            "position": 2,
+                            "name": "couponPaymentDate",
+                            "alias": "Coupon Payment Date",
+                            "fieldInfo": "",
+                            "reactComponent": "DateInput"
+                        }
+                    ]
+                },
+                {
+                    "id": "redemption",
+                    "type": "fields",
+                    "grid": 2,
+                    "fields": [
+                        {
+                            "key": "earlyredemptiondate",
+                            "position": 1,
+                            "name": "earlyRedemptionDate",
+                            "alias": "Early Redemption Date",
+                            "fieldInfo": "Specify the earliest date when the product can be redeemed.",
+                            "reactComponent": "DateInput",
+                            "colSize": 6
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "rules": {}
+}

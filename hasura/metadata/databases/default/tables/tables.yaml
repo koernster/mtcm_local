@@ -1,0 +1,17 @@
+# Tables configuration
+# This file will be auto-generated when you track tables via Hasura Console
+# or can be manually configured here
+
+# Example table structure:
+# - table:
+#     name: table_name
+#     schema: public
+#   object_relationships: []
+#   array_relationships: []
+#   insert_permissions: []
+#   select_permissions: []
+#   update_permissions: []
+#   delete_permissions: []
+#   event_triggers: []
+
+[]

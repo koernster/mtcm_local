@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies first (layer caching)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy source
+COPY . .
+
+# Use the local env file
+COPY .env.local .env.local
+
+EXPOSE 3000
+
+# Start dev server (HTTPS with self-signed certs)
+CMD ["npm", "start"]

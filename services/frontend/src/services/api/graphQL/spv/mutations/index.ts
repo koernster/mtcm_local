@@ -1,0 +1,11 @@
+export { INSERT_SPV } from './createSpv';
+export {
+    UPDATE_SPV,
+    UPDATE_SPV_WITH_ADDRESS,
+    UPDATE_SPV_WITH_PAYMENT,
+    UPDATE_SPV_FULL,
+    UPSERT_ADDRESS,
+    UPSERT_PAYMENT_DETAIL,
+    UPDATE_SPV_LINK_ADDRESS,
+    UPDATE_SPV_LINK_PAYMENT
+} from './updateSpv';

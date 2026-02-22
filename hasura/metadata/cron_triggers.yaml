@@ -1,0 +1,11 @@
+- name: MTCM_12_01_AM
+  webhook: http://172.18.0.8:8084
+  schedule: 1 0 * * 1-5
+  include_in_metadata: true
+  payload: {}
+  retry_conf:
+    num_retries: 3
+    timeout_seconds: 60
+    tolerance_seconds: 21600
+    retry_interval_seconds: 10
+  comment: This event is common cron event that runs every day by 12:01 AM except weekends.
