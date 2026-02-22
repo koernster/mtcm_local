@@ -1,30 +1,24 @@
 """
-Excel-based contact provider — fallback when HubSpot API is unavailable.
+Excel/CSV-based contact provider — fallback when HubSpot API is unavailable.
 
-Reads contacts from an Excel file (HubSpot export format) and serves them
-through the same interface as the live HubSpot API.
+Reads contacts from a CSV or Excel file (HubSpot export format) and serves
+them through the same interface as the live HubSpot API.
 
-Column mapping (Spanish HubSpot export → HubSpot API format):
-  - "ID de registro"      → id / hs_object_id
-  - "Nombre"              → firstname
-  - "Apellidos"           → lastname
-  - "Fecha de creación"   → createdate / createdAt
-  - "Correo"              → email
-  - "Número de teléfono"  → phone
-  - "Propietario del contacto" → hubspot_owner_id (as display name)
+Supports both Spanish and English HubSpot export column headers.
+Prefers CSV (more reliable) but also handles .xlsx files.
 """
 
 import os
+import csv
 import logging
 from typing import List, Dict, Optional
 from datetime import datetime
 
-import openpyxl
-
 logger = logging.getLogger(__name__)
 
-# ── Column mapping: Spanish HubSpot export → internal field names ────────────
+# ── Column mapping: HubSpot export header → internal field name ──────────────
 COLUMN_MAP = {
+    # Spanish
     "ID de registro": "id",
     "Nombre": "firstname",
     "Apellidos": "lastname",
@@ -33,6 +27,21 @@ COLUMN_MAP = {
     "Número de teléfono": "phone",
     "Estado del lead": "hs_lead_status",
     "Propietario del contacto": "hubspot_owner_id",
+    "Estado del contacto de marketing": "marketing_contact_status",
+    # English
+    "Record ID": "id",
+    "First Name": "firstname",
+    "Last Name": "lastname",
+    "Create Date": "createdate",
+    "Email": "email",
+    "Phone Number": "phone",
+    "Lead Status": "hs_lead_status",
+    "Contact owner": "hubspot_owner_id",
+    "Marketing contact status": "marketing_contact_status",
+    "Last Activity Date": "last_activity_date",
+    "Associated Company": "company",
+    "Primary Associated Company ID": "associated_company_id",
+    "Additional email addresses": "additional_emails",
 }
 
 
@@ -45,12 +54,22 @@ def _normalise_value(value) -> str:
     return str(value).strip()
 
 
+def _clean_id(raw_id: str) -> str:
+    """Normalise a HubSpot record ID (may be scientific notation or float)."""
+    if not raw_id:
+        return ""
+    try:
+        return str(int(float(raw_id)))
+    except (ValueError, OverflowError):
+        return raw_id.strip()
+
+
 def _row_to_hubspot_contact(row: Dict[str, str], index: int) -> Dict:
     """
     Convert a mapped row dict into the HubSpot contact JSON shape
     expected by the frontend (HubSpotContact interface).
     """
-    contact_id = row.get("id", "").replace(".", "").replace("E+", "")
+    contact_id = _clean_id(row.get("id", ""))
     if not contact_id:
         contact_id = str(10000 + index)
 
@@ -68,6 +87,7 @@ def _row_to_hubspot_contact(row: Dict[str, str], index: int) -> Dict:
             "phone": row.get("phone", ""),
             "hs_lead_status": row.get("hs_lead_status", ""),
             "hubspot_owner_id": row.get("hubspot_owner_id", ""),
+            "company": row.get("company", ""),
         },
         "createdAt": created,
         "updatedAt": created,
@@ -77,8 +97,13 @@ def _row_to_hubspot_contact(row: Dict[str, str], index: int) -> Dict:
 
 class ExcelContactProvider:
     """
-    Loads contacts from an Excel workbook once and keeps them in memory.
+    Loads contacts from a CSV or Excel file and keeps them in memory.
     Supports the same query patterns as the live HubSpot endpoints.
+
+    File resolution order:
+      1. Exact path given (CSV or XLSX)
+      2. If .xlsx path given, also checks for .csv with same base name
+      3. Scans the data directory for any .csv or .xlsx file
     """
 
     def __init__(self, file_path: str):
@@ -86,35 +111,103 @@ class ExcelContactProvider:
         self._contacts: List[Dict] = []
         self._loaded = False
 
+    def _resolve_file(self) -> Optional[str]:
+        """Find the best available data file."""
+        # 1. Exact path
+        if os.path.exists(self.file_path):
+            return self.file_path
+
+        # 2. Try .csv variant of an .xlsx path (and vice versa)
+        base, ext = os.path.splitext(self.file_path)
+        alternatives = [base + ".csv", base + ".xlsx", base + ".xls"]
+        for alt in alternatives:
+            if alt != self.file_path and os.path.exists(alt):
+                return alt
+
+        # 3. Scan the data directory for any contacts file
+        data_dir = os.path.dirname(self.file_path)
+        if os.path.isdir(data_dir):
+            for f in sorted(os.listdir(data_dir)):
+                if f.startswith("~$"):
+                    continue  # skip Excel lock files
+                if f.endswith((".csv", ".xlsx", ".xls")):
+                    return os.path.join(data_dir, f)
+
+        return None
+
     # ── Loading ──────────────────────────────────────────────────────────
 
     def load(self) -> int:
-        """Parse the Excel file and return the number of contacts loaded."""
-        if not os.path.exists(self.file_path):
-            logger.error(f"Excel contact file not found: {self.file_path}")
+        """Parse the data file and return the number of contacts loaded."""
+        resolved = self._resolve_file()
+        if not resolved:
+            logger.error(f"No contact file found (searched near {self.file_path})")
             return 0
 
-        wb = openpyxl.load_workbook(self.file_path, read_only=True)
-        ws = wb.active
+        logger.info(f"Loading contacts from: {resolved}")
 
-        # Build header → column-index map
-        headers = [cell.value for cell in ws[1]]
-        col_map: Dict[int, str] = {}
-        for idx, header in enumerate(headers):
-            if header in COLUMN_MAP:
-                col_map[idx] = COLUMN_MAP[header]
+        if resolved.endswith(".csv"):
+            contacts = self._load_csv(resolved)
+        else:
+            contacts = self._load_xlsx(resolved)
 
-        contacts = []
-        for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
-            mapped = {col_map[i]: _normalise_value(v) for i, v in enumerate(row) if i in col_map}
-            if mapped.get("firstname") or mapped.get("email"):
-                contacts.append(_row_to_hubspot_contact(mapped, row_idx))
-
-        wb.close()
         self._contacts = contacts
         self._loaded = True
-        logger.info(f"Excel provider loaded {len(contacts)} contacts from {self.file_path}")
+        logger.info(f"Loaded {len(contacts)} contacts from {os.path.basename(resolved)}")
         return len(contacts)
+
+    def _load_csv(self, path: str) -> List[Dict]:
+        """Load contacts from a CSV file."""
+        contacts = []
+        # Try UTF-8 first, fall back to latin-1
+        for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+            try:
+                with open(path, "r", encoding=encoding) as f:
+                    reader = csv.DictReader(f)
+                    for idx, row in enumerate(reader):
+                        mapped = {}
+                        for header, value in row.items():
+                            field = COLUMN_MAP.get(header)
+                            if field:
+                                mapped[field] = _normalise_value(value)
+                        if mapped.get("firstname") or mapped.get("email"):
+                            contacts.append(_row_to_hubspot_contact(mapped, idx))
+                return contacts
+            except UnicodeDecodeError:
+                continue
+        logger.error(f"Could not decode CSV file: {path}")
+        return []
+
+    def _load_xlsx(self, path: str) -> List[Dict]:
+        """Load contacts from an Excel file."""
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(path, read_only=False)
+            ws = wb.active
+            if ws is None and wb.sheetnames:
+                ws = wb[wb.sheetnames[0]]
+            if ws is None:
+                wb.close()
+                logger.error(f"No readable sheet in {path}")
+                return []
+
+            headers = [cell.value for cell in ws[1]]
+            col_map: Dict[int, str] = {}
+            for idx, header in enumerate(headers):
+                if header in COLUMN_MAP:
+                    col_map[idx] = COLUMN_MAP[header]
+
+            contacts = []
+            for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
+                mapped = {col_map[i]: _normalise_value(v) for i, v in enumerate(row) if i in col_map}
+                if mapped.get("firstname") or mapped.get("email"):
+                    contacts.append(_row_to_hubspot_contact(mapped, row_idx))
+            wb.close()
+            return contacts
+
+        except Exception as e:
+            logger.error(f"Failed to read xlsx {path}: {e}")
+            return []
 
     @property
     def contacts(self) -> List[Dict]:
@@ -140,6 +233,7 @@ class ExcelContactProvider:
             if q in (c["properties"].get("firstname") or "").lower()
             or q in (c["properties"].get("lastname") or "").lower()
             or q in (c["properties"].get("email") or "").lower()
+            or q in (c["properties"].get("company") or "").lower()
         ]
 
     def reload(self) -> int:
